@@ -165,13 +165,21 @@ export function handleImageClick(this: PixelPerfectImage, ev: MouseEvent): void 
 					this.app.workspace.openLinkText(result.imgFile.path, '', true);
 				} else if (this.settings.cmdCtrlClickBehavior === 'open-in-default-app') {
 					this.openInDefaultApp(result.imgFile);
+				} else if (this.settings.cmdCtrlClickBehavior === 'open-in-external-editor') {
+					this.openInExternalEditor(result.imgFile.path);
 				}
 			}
 		})
 		.catch((error: any) => {
-			const action = this.settings.cmdCtrlClickBehavior === 'open-in-new-tab' 
-				? 'open image in new tab' 
-				: 'open image in default app';
+			let action = 'perform action';
+			if (this.settings.cmdCtrlClickBehavior === 'open-in-new-tab') {
+				action = 'open image in new tab';
+			} else if (this.settings.cmdCtrlClickBehavior === 'open-in-default-app') {
+				action = 'open image in default app';
+			} else if (this.settings.cmdCtrlClickBehavior === 'open-in-external-editor') {
+				const editorName = this.settings.externalEditorName.trim() || 'external editor';
+				action = `open image in ${editorName}`;
+			}
 			errorLog(`Failed to ${action}:`, error);
 			new Notice(`Failed to ${action}`);
 		});

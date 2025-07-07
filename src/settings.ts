@@ -11,7 +11,7 @@ export interface PixelPerfectImageSettings {
 	showOpenInDefaultApp: boolean;
 	showPercentageResize: boolean;
 	customResizeWidths: number[];  // in pixels (empty array means disabled)
-	cmdCtrlClickBehavior: 'open-in-new-tab' | 'open-in-default-app';
+	cmdCtrlClickBehavior: 'open-in-new-tab' | 'open-in-default-app' | 'open-in-external-editor';
 
 	// Mousewheel zoom settings
 	enableWheelZoom: boolean;
@@ -165,14 +165,18 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName(`${cmdKey} + click behavior`)
 			.setDesc(`Choose what happens when you ${cmdKey} + click an image`)
-			.addDropdown(dropdown => dropdown
-				.addOption('open-in-new-tab', 'Open in new tab')
-				.addOption('open-in-default-app', 'Open in default app')
-				.setValue(this.plugin.settings.cmdCtrlClickBehavior)
-				.onChange(async (value: 'open-in-new-tab' | 'open-in-default-app') => {
-					this.plugin.settings.cmdCtrlClickBehavior = value;
-					await this.plugin.saveSettings();
-				}));
+			.addDropdown(dropdown => {
+				const editorName = this.plugin.settings.externalEditorName.trim() || 'external editor';
+				dropdown
+					.addOption('open-in-new-tab', 'Open in new tab')
+					.addOption('open-in-default-app', 'Open in default app')
+					.addOption('open-in-external-editor', `Open in ${editorName}`)
+					.setValue(this.plugin.settings.cmdCtrlClickBehavior)
+					.onChange(async (value: 'open-in-new-tab' | 'open-in-default-app' | 'open-in-external-editor') => {
+						this.plugin.settings.cmdCtrlClickBehavior = value;
+						await this.plugin.saveSettings();
+					});
+			});
 
 	
 		// Mousewheel zoom section

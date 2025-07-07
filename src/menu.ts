@@ -340,7 +340,7 @@ export function addFileOperationMenuItems(this: PixelPerfectImage, menu: Menu, t
 	// Add external editor option if path is set
 	const editorPath = getExternalEditorPath(this.settings);
 	if (editorPath?.trim()) {
-		const editorName = this.settings.externalEditorName.trim() || "External Editor";
+		const editorName = this.settings.externalEditorName.trim() || "external editor";
 		addMenuItem.call(
 			this,
 			menu,
