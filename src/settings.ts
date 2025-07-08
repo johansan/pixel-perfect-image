@@ -3,13 +3,17 @@ import PixelPerfectImage from './main';
 
 
 export interface PixelPerfectImageSettings {
-	// Menu options
+	// Main settings
+	toggleIndividualMenuOptions: boolean;
+	// Menu sub-options (shown when toggle is enabled)
 	showFileInfo: boolean;
+	showPercentageResize: boolean;
 	showShowInFileExplorer: boolean;
 	showRenameOption: boolean;
+	showDeleteImageOption: boolean;
 	showOpenInNewTab: boolean;
 	showOpenInDefaultApp: boolean;
-	showPercentageResize: boolean;
+	// Other main settings
 	customResizeWidths: number[];  // in pixels (empty array means disabled)
 	cmdCtrlClickBehavior: 'open-in-new-tab' | 'open-in-default-app' | 'open-in-external-editor';
 
@@ -24,18 +28,23 @@ export interface PixelPerfectImageSettings {
 	externalEditorPathMac: string;
 	externalEditorPathWin: string;
 
-	// Debug settings
+	// Advanced settings
+	confirmBeforeDelete: boolean;
 	debugMode: boolean;
 }
 
 export const DEFAULT_SETTINGS: PixelPerfectImageSettings = {
-	// Menu options
+	// Main settings
+	toggleIndividualMenuOptions: false,
+	// Menu sub-options
 	showFileInfo: true,
+	showPercentageResize: true,
 	showShowInFileExplorer: true,
 	showRenameOption: true,
+	showDeleteImageOption: true,
 	showOpenInNewTab: true,
 	showOpenInDefaultApp: true,
-	showPercentageResize: true,
+	// Other main settings
 	customResizeWidths: [],  // disabled by default
 	cmdCtrlClickBehavior: 'open-in-new-tab',
 
@@ -50,7 +59,8 @@ export const DEFAULT_SETTINGS: PixelPerfectImageSettings = {
 	externalEditorPathMac: "",
 	externalEditorPathWin: "",
 
-	// Debug defaults
+	// Advanced defaults
+	confirmBeforeDelete: true,
 	debugMode: false,
 };
 
@@ -67,18 +77,35 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
+	// Helper to show/hide elements
+	private setElementVisibility(el: HTMLElement, visible: boolean) {
+		el.style.display = visible ? 'block' : 'none';
+	}
+
 	async display() {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		// Menu Options Section
+		// Main toggle for individual menu options
+		let menuSubSettingsEl: HTMLElement;
 		new Setting(containerEl)
-			.setName("Menu options")
-			.setHeading();
+			.setName("Toggle individual menu options")
+			.setDesc("Show settings to toggle individual menu items")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.toggleIndividualMenuOptions)
+				.onChange(async (value) => {
+					this.plugin.settings.toggleIndividualMenuOptions = value;
+					await this.plugin.saveSettings();
+					// Update menu sub-settings visibility
+					this.setElementVisibility(menuSubSettingsEl, value);
+				}));
 
-		new Setting(containerEl)
-			.setName("Show file information")
-			.setDesc("Show file information in the context menu")
+		// Container for menu sub-settings
+		menuSubSettingsEl = containerEl.createDiv('pixel-perfect-sub-settings');
+
+		new Setting(menuSubSettingsEl)
+			.setName("File information")
+			.setDesc("Show filename and dimensions at top of menu")
 			.addToggle(toggle => {
 				toggle
 					.setValue(this.plugin.settings.showFileInfo)
@@ -88,9 +115,19 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 					});
 			});
 
-		new Setting(containerEl)
-			.setName('Show in file explorer')
-			.setDesc('Show option to reveal image in system file explorer')
+		new Setting(menuSubSettingsEl)
+			.setName("Percentage resize options")
+			.setDesc("Show 'Resize to 25%', '50%', '100%' options. Custom sizes will always be shown if defined.")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.showPercentageResize)
+				.onChange(async (value) => {
+					this.plugin.settings.showPercentageResize = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(menuSubSettingsEl)
+			.setName("Show in Finder/Explorer")
+			.setDesc("Show option to reveal image in system file explorer")
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.showShowInFileExplorer)
 				.onChange(async (value) => {
@@ -98,9 +135,9 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		new Setting(containerEl)
-			.setName('Show rename option')
-			.setDesc('Show option to rename image file')
+		new Setting(menuSubSettingsEl)
+			.setName("Rename image")
+			.setDesc("Show option to rename image file")
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.showRenameOption)
 				.onChange(async (value) => {
@@ -108,9 +145,19 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		new Setting(containerEl)
-			.setName('Show open in new tab')
-			.setDesc('Show option to open image in new tab')
+		new Setting(menuSubSettingsEl)
+			.setName("Delete image and link")
+			.setDesc("Show option to delete both image file and link")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.showDeleteImageOption)
+				.onChange(async (value) => {
+					this.plugin.settings.showDeleteImageOption = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(menuSubSettingsEl)
+			.setName("Open in new tab")
+			.setDesc("Show option to open image in new tab")
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.showOpenInNewTab)
 				.onChange(async (value) => {
@@ -118,23 +165,13 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}));
 
-		new Setting(containerEl)
-			.setName('Show open in default app')
-			.setDesc('Show option to open image in default app')
+		new Setting(menuSubSettingsEl)
+			.setName("Open in default app")
+			.setDesc("Show option to open image in default app")
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.showOpenInDefaultApp)
 				.onChange(async (value) => {
 					this.plugin.settings.showOpenInDefaultApp = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName('Show percentage resize')
-			.setDesc('Show percentage resize options (100%, 50%, 25%) in the context menu. Custom sizes will always be shown if defined.')
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.showPercentageResize)
-				.onChange(async (value) => {
-					this.plugin.settings.showPercentageResize = value;
 					await this.plugin.saveSettings();
 				}));
 
@@ -308,10 +345,20 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 				});
 		}
 
-		// Developer section
+		// Advanced section
 		new Setting(containerEl)
-			.setName("Developer")
+			.setName("Advanced")
 			.setHeading();
+
+		new Setting(containerEl)
+			.setName("Confirm before delete")
+			.setDesc("Show confirmation dialog before deleting files")
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.confirmBeforeDelete)
+				.onChange(async (value) => {
+					this.plugin.settings.confirmBeforeDelete = value;
+					await this.plugin.saveSettings();
+				}));
 
 		new Setting(containerEl)
 			.setName("Debug mode")
@@ -324,5 +371,8 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					});
 			});
+		
+		// Set initial visibility of sub-settings
+		this.setElementVisibility(menuSubSettingsEl, this.plugin.settings.toggleIndividualMenuOptions);
 	}
 } 

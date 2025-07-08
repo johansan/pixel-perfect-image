@@ -16,10 +16,10 @@ import { registerImageContextMenu, handleContextMenu, addDimensionsMenuItem, add
 import { resizeImage, updateImageLinkWidth, removeImageWidth, readImageDimensions, calculateImageScale, getCurrentImageWidth, copyImageToClipboard } from './image-operations';
 
 // Import link parser functions
-import { updateLinks, parseLinkComponents, buildLinkPath, updateImageLinks, resolveLink } from './link-parser';
+import { updateLinks, parseLinkComponents, buildLinkPath, updateImageLinks, resolveLink, removeImageLinks } from './link-parser';
 
 // Import file utilities
-import { getFileForImage, parseFileNameFromSrc, getImageFileWithErrorHandling, showInSystemExplorer, openInDefaultApp, openInExternalEditor, renameImage, promptForNewName } from './file-utils';
+import { getFileForImage, parseFileNameFromSrc, getImageFileWithErrorHandling, showInSystemExplorer, openInDefaultApp, openInExternalEditor, renameImage, promptForNewName, deleteImageAndLink } from './file-utils';
 
 // Import utilities
 import { findImageElement, errorLog } from './utils';
@@ -63,6 +63,7 @@ export default class PixelPerfectImage extends Plugin {
 	buildLinkPath = buildLinkPath.bind(this);
 	updateImageLinks = updateImageLinks.bind(this);
 	resolveLink = resolveLink.bind(this);
+	removeImageLinks = removeImageLinks.bind(this);
 	
 	getFileForImage = getFileForImage.bind(this);
 	parseFileNameFromSrc = parseFileNameFromSrc.bind(this);
@@ -72,6 +73,7 @@ export default class PixelPerfectImage extends Plugin {
 	openInExternalEditor = openInExternalEditor.bind(this);
 	renameImage = renameImage.bind(this);
 	promptForNewName = promptForNewName.bind(this);
+	deleteImageAndLink = deleteImageAndLink.bind(this);
 	
 	findImageElement = findImageElement.bind(this);
 	errorLog = errorLog.bind(this);

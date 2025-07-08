@@ -1,4 +1,4 @@
-import { Modal, App } from 'obsidian';
+import { Modal, App, TFile } from 'obsidian';
 
 export class FileNameInputModal extends Modal {
 	private result: string | null = null;
@@ -76,5 +76,68 @@ export class FileNameInputModal extends Modal {
 		if (this.result === undefined) {
 			this.onSubmit(null);
 		}
+	}
+}
+
+export class DeleteConfirmationModal extends Modal {
+	private readonly file: TFile;
+	private readonly onConfirm: () => void;
+
+	constructor(app: App, file: TFile, onConfirm: () => void) {
+		super(app);
+		this.file = file;
+		this.onConfirm = onConfirm;
+	}
+
+	onOpen() {
+		const { contentEl } = this;
+		contentEl.empty();
+		contentEl.addClass('pixel-perfect-delete-modal');
+
+		contentEl.createEl("h2", { 
+			text: "Delete image",
+			cls: 'modal-title'
+		});
+
+		const messageDiv = contentEl.createDiv();
+		messageDiv.addClass('pixel-perfect-delete-message');
+		
+		messageDiv.createEl("p", { 
+			text: `Are you sure you want to delete "${this.file.name}"?`
+		});
+		
+		messageDiv.createEl("p", { 
+			text: "This will delete both the image file and all links to it in the current document.",
+			cls: 'mod-warning'
+		});
+
+		const buttonContainer = contentEl.createDiv();
+		buttonContainer.addClass('pixel-perfect-button-container');
+
+		const deleteButton = buttonContainer.createEl("button", { 
+			text: "Delete",
+			cls: 'mod-warning' // Red styling for delete action
+		});
+		
+		const cancelButton = buttonContainer.createEl("button", { 
+			text: "Cancel"
+		});
+		
+		deleteButton.addEventListener("click", () => {
+			this.onConfirm();
+			this.close();
+		});
+		
+		cancelButton.addEventListener("click", () => {
+			this.close();
+		});
+
+		// Focus on cancel button by default for safety
+		cancelButton.focus();
+	}
+
+	onClose() {
+		const { contentEl } = this;
+		contentEl.empty();
 	}
 }

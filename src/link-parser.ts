@@ -227,3 +227,80 @@ export function resolveLink(this: PixelPerfectImage, linkPath: string, activeFil
 	if (imageFile && resolvedFile.path !== imageFile.path) return null;
 	return resolvedFile;
 }
+
+/**
+ * Removes all image links pointing to the specified file from the document.
+ * Handles both wiki-style (![[image.png]]) and markdown-style (![](image.png)) links.
+ * @param imageFile - The image file whose links should be removed
+ * @returns Promise<boolean> - True if any links were removed, false otherwise
+ */
+export async function removeImageLinks(this: PixelPerfectImage, imageFile: TFile): Promise<boolean> {
+	const activeFile = this.app.workspace.getActiveFile();
+	if (!activeFile) {
+		throw new Error('No active file, cannot remove links.');
+	}
+
+	if (activeFile.path === imageFile.path) {
+		return false;
+	}
+
+	const docText = await this.app.vault.read(activeFile);
+	
+	// Extract frontmatter and content
+	let contentWithoutFrontmatter = docText;
+	let frontmatterEndIndex = -1;
+	
+	if (docText.startsWith('---\n')) {
+		frontmatterEndIndex = docText.indexOf('\n---\n', 4);
+		if (frontmatterEndIndex !== -1) {
+			frontmatterEndIndex += 5; // Include the closing delimiter
+			contentWithoutFrontmatter = docText.substring(frontmatterEndIndex);
+		}
+	}
+	
+	let replacedText = contentWithoutFrontmatter;
+	
+	// Remove wiki-style links (![[image.png|100]])
+	replacedText = replacedText.replace(WIKILINK_IMAGE_REGEX, (match, opening, linkInner, closing) => {
+		// Parse the link components
+		const link = parseLinkComponents.call(this, linkInner);
+		
+		// If this link points to our target image, remove it
+		if (resolveLink.call(this, link.path, activeFile, imageFile)) {
+			return '';  // Remove the entire link
+		}
+		
+		return match;  // Keep non-matching links
+	});
+
+	// Remove markdown-style links (![alt|100](image.png))
+	replacedText = replacedText.replace(MARKDOWN_IMAGE_REGEX, (match, description, linkPath) => {
+		// Parse the link components
+		const link = parseLinkComponents.call(this, description, linkPath);
+		
+		// If this link points to our target image, remove it
+		if (resolveLink.call(this, link.path, activeFile, imageFile)) {
+			return '';  // Remove the entire link
+		}
+		
+		return match;  // Keep non-matching links
+	});
+
+	// Only update if content changed
+	if (replacedText !== contentWithoutFrontmatter) {
+		try {
+			// Update the file content
+			await this.app.vault.process(activeFile, (data) => {
+				return frontmatterEndIndex !== -1
+					? data.substring(0, frontmatterEndIndex) + replacedText
+					: replacedText;
+			});
+			return true;
+		} catch (error) {
+			errorLog('Failed to remove image links:', error);
+			throw new Error('Failed to remove image links');
+		}
+	}
+
+	return false;
+}

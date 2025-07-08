@@ -28,7 +28,7 @@
 
 /* Settings Tab Styles */
 .pixel-perfect-px-suffix {
-  width: 30px;
+  width: 40px;
   text-align: left;
   border: none;
   background-color: transparent;
@@ -38,4 +38,9 @@
   min-width: 2.5em;
   text-align: right;
   margin-right: 1em;
+}
+
+/* Settings page indentation for sub-settings */
+.pixel-perfect-sub-settings {
+  margin-inline-start: var(--size-4-5);
 }

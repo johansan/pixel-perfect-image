@@ -300,8 +300,24 @@ export function addFileOperationMenuItems(this: PixelPerfectImage, menu: Menu, t
 		);
 	}
 
+	// Add delete option
+	if (this.settings.showDeleteImageOption) {
+		addMenuItem.call(
+			this,
+			menu,
+			'Delete image and link',
+			'trash',
+			async () => {
+				const result = await this.getImageFileWithErrorHandling(target);
+				if (!result) return;
+				await this.deleteImageAndLink(result.imgFile);
+			},
+			'Failed to delete image'
+		);
+	}
+
 	// Add separator if any file operation was added
-	if (this.settings.showRenameOption || this.settings.showShowInFileExplorer) {
+	if (this.settings.showRenameOption || this.settings.showDeleteImageOption || this.settings.showShowInFileExplorer) {
 		menu.addSeparator();
 	}
 

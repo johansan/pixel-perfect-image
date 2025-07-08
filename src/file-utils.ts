@@ -2,7 +2,7 @@ import { TFile, Notice, FileSystemAdapter, Platform, normalizePath } from 'obsid
 import type PixelPerfectImage from './main';
 import { join } from 'path';
 import { exec } from "child_process";
-import { FileNameInputModal } from './modals';
+import { FileNameInputModal, DeleteConfirmationModal } from './modals';
 import { errorLog } from './utils';
 import { getExternalEditorPath } from './settings';
 
@@ -163,4 +163,41 @@ export async function promptForNewName(this: PixelPerfectImage, file: TFile): Pr
 		});
 		modal.open();
 	});
+}
+
+/**
+ * Deletes both the image file and all links to it in the current document.
+ * Shows a confirmation dialog if enabled in settings.
+ * @param file - The image file to delete
+ */
+export async function deleteImageAndLink(this: PixelPerfectImage, file: TFile): Promise<void> {
+	// Helper function to perform the actual deletion
+	const performDeletion = async () => {
+		try {
+			// First, remove all links to the image from the active document
+			const linksRemoved = await this.removeImageLinks(file);
+			
+			// Then delete the image file itself
+			await this.app.fileManager.trashFile(file);
+			
+			// Show success message
+			if (linksRemoved) {
+				new Notice('Image and links deleted successfully');
+			} else {
+				new Notice('Image deleted successfully');
+			}
+		} catch (error) {
+			errorLog('Failed to delete image:', error);
+			new Notice('Failed to delete image and links');
+		}
+	};
+
+	// Show confirmation dialog if enabled
+	if (this.settings.confirmBeforeDelete) {
+		const modal = new DeleteConfirmationModal(this.app, file, performDeletion);
+		modal.open();
+	} else {
+		// Delete immediately without confirmation
+		await performDeletion();
+	}
 }
