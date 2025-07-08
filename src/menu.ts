@@ -1,7 +1,6 @@
 import { Menu, Notice, Platform } from 'obsidian';
 import type PixelPerfectImage from './main';
 import { findImageElement, errorLog } from './utils';
-import { RESIZE_PERCENTAGES } from './constants';
 import { getExternalEditorPath } from './settings';
 
 /**
@@ -213,32 +212,26 @@ export async function addResizeMenuItems(this: PixelPerfectImage, menu: Menu, ev
 		currentScale = currentWidth !== null ? Math.round((currentWidth / width) * 100) : null;
 	}
 
-	// Add percentage resize options if enabled in settings
-	if (this.settings.showPercentageResize) {
-		RESIZE_PERCENTAGES.forEach(percentage => {
+	// Add resize options from settings
+	if (this.settings.customResizeSizes.length > 0) {
+		this.settings.customResizeSizes.forEach(sizeStr => {
+			const match = sizeStr.match(/^(\d+)(px|%)$/);
+			if (!match) return; // Skip invalid formats
+			
+			const value = parseInt(match[1]);
+			const unit = match[2];
+			const label = `Resize to ${sizeStr}`;
+			const isPercentage = unit === '%';
+			const disabled = isPercentage ? (currentScale === value) : (currentWidth === value);
+			
 			addMenuItem.call(
 				this,
 				menu,
-				`Resize to ${percentage}%`,
+				label,
 				'image',
-				async () => await this.resizeImage(img, percentage),
-				`Failed to resize image to ${percentage}%`,
-				currentScale === percentage
-			);
-		});
-	}
-
-	// Add custom resize options if set
-	if (this.settings.customResizeWidths.length > 0) {
-		this.settings.customResizeWidths.forEach(width => {
-			addMenuItem.call(
-				this,
-				menu,
-				`Resize to ${width}px`,
-				'image',
-				async () => await this.resizeImage(img, width, true),
-				`Failed to resize image to ${width}px`,
-				currentWidth === width
+				async () => await this.resizeImage(img, value, !isPercentage),
+				`Failed to resize image to ${sizeStr}`,
+				disabled
 			);
 		});
 	}

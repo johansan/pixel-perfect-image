@@ -7,15 +7,14 @@ export interface PixelPerfectImageSettings {
 	toggleIndividualMenuOptions: boolean;
 	// Menu sub-options (shown when toggle is enabled)
 	showFileInfo: boolean;
-	showPercentageResize: boolean;
 	showShowInFileExplorer: boolean;
 	showRenameOption: boolean;
 	showDeleteImageOption: boolean;
 	showOpenInNewTab: boolean;
 	showOpenInDefaultApp: boolean;
 	// Other main settings
-	customResizeWidths: number[];  // in pixels (empty array means disabled)
-	cmdCtrlClickBehavior: 'open-in-new-tab' | 'open-in-default-app' | 'open-in-external-editor';
+	customResizeSizes: string[];  // Array of sizes like ['25%', '50%', '100%', '600px']
+	cmdCtrlClickBehavior: 'do-nothing' | 'open-in-new-tab' | 'open-in-default-app' | 'open-in-external-editor';
 
 	// Mousewheel zoom settings
 	enableWheelZoom: boolean;
@@ -38,15 +37,14 @@ export const DEFAULT_SETTINGS: PixelPerfectImageSettings = {
 	toggleIndividualMenuOptions: false,
 	// Menu sub-options
 	showFileInfo: true,
-	showPercentageResize: true,
 	showShowInFileExplorer: true,
 	showRenameOption: true,
 	showDeleteImageOption: true,
 	showOpenInNewTab: true,
 	showOpenInDefaultApp: true,
 	// Other main settings
-	customResizeWidths: [],  // disabled by default
-	cmdCtrlClickBehavior: 'open-in-new-tab',
+	customResizeSizes: ['25%', '50%', '100%'],  // Default percentage sizes
+	cmdCtrlClickBehavior: 'do-nothing',
 
 	// Mousewheel zoom defaults
 	enableWheelZoom: true,
@@ -116,16 +114,6 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 			});
 
 		new Setting(menuSubSettingsEl)
-			.setName("Percentage resize options")
-			.setDesc("Show 'Resize to 25%', '50%', '100%' options. Custom sizes will always be shown if defined.")
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.showPercentageResize)
-				.onChange(async (value) => {
-					this.plugin.settings.showPercentageResize = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(menuSubSettingsEl)
 			.setName("Show in Finder/Explorer")
 			.setDesc("Show option to reveal image in system file explorer")
 			.addToggle(toggle => toggle
@@ -176,26 +164,25 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName("Custom resize width")
-			.setDesc("Set custom resize widths in pixels (comma-separated, e.g. 600,800,1200)")
+			.setName("Resize options")
+			.setDesc("Set resize options (comma-separated). Use % for percentages (e.g., 25%, 50%) or px for pixels (e.g., 600px, 800px)")
 			.addText(text => {
 				text
-					.setPlaceholder("e.g., 600,800,1200")
-					.setValue(this.plugin.settings.customResizeWidths.length > 0 ? this.plugin.settings.customResizeWidths.join(',') : "")
+					.setPlaceholder("e.g., 25%, 50%, 100%, 600px")
+					.setValue(this.plugin.settings.customResizeSizes.join(', '))
 					.onChange(async (value) => {
-						// Parse comma-separated values
-						const widths = value.split(',')
-							.map(part => parseInt(part.trim()))
-							.filter(width => !isNaN(width) && width > 0);
+						// Parse comma-separated values, keeping units
+						const sizes = value.split(',')
+							.map(s => s.trim())
+							.filter(s => {
+								// Validate format: number followed by % or px
+								const match = s.match(/^(\d+)(px|%)$/);
+								return match && parseInt(match[1]) > 0;
+							});
 						
-						this.plugin.settings.customResizeWidths = widths;
+						this.plugin.settings.customResizeSizes = sizes;
 						await this.plugin.saveSettings();
 					});
-			})
-			.addText(text => {
-				text.inputEl.addClass('pixel-perfect-px-suffix');
-				text.setValue("px");
-				text.setDisabled(true);
 			});
 
 		const cmdKey = Platform.isMacOS ? 'CMD' : 'CTRL';
@@ -205,11 +192,12 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 			.addDropdown(dropdown => {
 				const editorName = this.plugin.settings.externalEditorName.trim() || 'external editor';
 				dropdown
+					.addOption('do-nothing', 'Do nothing')
 					.addOption('open-in-new-tab', 'Open in new tab')
 					.addOption('open-in-default-app', 'Open in default app')
 					.addOption('open-in-external-editor', `Open in ${editorName}`)
 					.setValue(this.plugin.settings.cmdCtrlClickBehavior)
-					.onChange(async (value: 'open-in-new-tab' | 'open-in-default-app' | 'open-in-external-editor') => {
+					.onChange(async (value: 'do-nothing' | 'open-in-new-tab' | 'open-in-default-app' | 'open-in-external-editor') => {
 						this.plugin.settings.cmdCtrlClickBehavior = value;
 						await this.plugin.saveSettings();
 					});

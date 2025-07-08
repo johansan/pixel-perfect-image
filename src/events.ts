@@ -154,6 +154,11 @@ export function handleImageClick(this: PixelPerfectImage, ev: MouseEvent): void 
 	const img = findImageElement(ev.target);
 	if (!img) return;
 
+	// If behavior is set to 'do-nothing', return early
+	if (this.settings.cmdCtrlClickBehavior === 'do-nothing') {
+		return;
+	}
+
 	// Prevent default click behavior
 	ev.preventDefault();
 
