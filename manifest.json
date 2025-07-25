@@ -1,7 +1,7 @@
 {
 	"id": "pixel-perfect-image",
 	"name": "Pixel Perfect Image",
-	"version": "1.0.16",
+	"version": "1.0.17",
 	"minAppVersion": "1.4.4",
 	"description": "Pixel perfect 100% image resizing, copy to clipboard, show image in Finder/Explorer, edit image in external editor, and much more.",
 	"author": "Johan Sanneblad",
