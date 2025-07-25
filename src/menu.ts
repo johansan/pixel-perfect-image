@@ -9,7 +9,7 @@ import { getExternalEditorPath } from './settings';
  */
 export function registerImageContextMenu(this: PixelPerfectImage): void {
 	// Add support for both desktop right-click and mobile long-press
-	this.registerDomEvent(document, 'contextmenu', handleContextMenu.bind(this));
+	this.registerDomEvent(document, 'contextmenu', handleContextMenu.bind(this), true);
 	
 	// Add mobile long-press support
 	let longPressTimer: NodeJS.Timeout;
@@ -27,15 +27,15 @@ export function registerImageContextMenu(this: PixelPerfectImage): void {
 			isLongPress = true;
 			handleContextMenu.call(this, ev);
 		}, 500); // 500ms long press
-	});
+	}, true);
 	
 	this.registerDomEvent(document, 'touchend', () => {
 		clearTimeout(longPressTimer);
-	});
+	}, true);
 	
 	this.registerDomEvent(document, 'touchmove', () => {
 		clearTimeout(longPressTimer);
-	});
+	}, true);
 }
 
 export async function handleContextMenu(this: PixelPerfectImage, ev: MouseEvent | TouchEvent) {
