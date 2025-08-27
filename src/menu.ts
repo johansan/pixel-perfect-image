@@ -1,6 +1,6 @@
 import { Menu, Notice, Platform } from 'obsidian';
 import type PixelPerfectImage from './main';
-import { findImageElement, errorLog } from './utils';
+import { findImageElement, errorLog, isRemoteImage } from './utils';
 import { getExternalEditorPath } from './settings';
 
 /**
@@ -49,13 +49,36 @@ export async function handleContextMenu(this: PixelPerfectImage, ev: MouseEvent 
 	ev.preventDefault();
 
 	const menu = new Menu();
-	await addDimensionsMenuItem.call(this, menu, img);
-	await addResizeMenuItems.call(this, menu, ev);
 	
-	// Only add file operations on desktop
-	if (!Platform.isMobile) {
-		menu.addSeparator();
-		addFileOperationMenuItems.call(this, menu, img);
+	// Check if this is a remote image
+	const isRemote = isRemoteImage(img);
+	
+	if (isRemote) {
+		// For remote images, show indicator and limited options
+		addInfoMenuItem(menu, 'Remote image', 'globe');
+		
+		// Copy URL option for remote images
+		addMenuItem.call(
+			this,
+			menu,
+			'Copy image URL',
+			'link',
+			async () => {
+				await navigator.clipboard.writeText(img.src);
+				new Notice('Image URL copied to clipboard');
+			},
+			'Failed to copy image URL'
+		);
+	} else {
+		// For local images, show all normal options
+		await addDimensionsMenuItem.call(this, menu, img);
+		await addResizeMenuItems.call(this, menu, ev);
+		
+		// Only add file operations on desktop
+		if (!Platform.isMobile) {
+			menu.addSeparator();
+			addFileOperationMenuItems.call(this, menu, img);
+		}
 	}
 
 	// Position menu at event coordinates

@@ -22,7 +22,7 @@ import { updateLinks, parseLinkComponents, buildLinkPath, updateImageLinks, reso
 import { getFileForImage, parseFileNameFromSrc, getImageFileWithErrorHandling, showInSystemExplorer, openInDefaultApp, openInExternalEditor, renameImage, promptForNewName, deleteImageAndLink } from './file-utils';
 
 // Import utilities
-import { findImageElement, errorLog } from './utils';
+import { findImageElement, errorLog, isRemoteImage } from './utils';
 
 // Import modals
 import { FileNameInputModal } from './modals';
@@ -77,6 +77,7 @@ export default class PixelPerfectImage extends Plugin {
 	
 	findImageElement = findImageElement.bind(this);
 	errorLog = errorLog.bind(this);
+	isRemoteImage = isRemoteImage.bind(this);
 
 	async onload() {
 		await this.loadSettings();

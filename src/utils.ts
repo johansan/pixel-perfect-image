@@ -21,6 +21,16 @@ export function findImageElement(target: EventTarget | null): HTMLImageElement |
 }
 
 /**
+ * Checks if an image is a remote URL (http/https)
+ * @param img - The HTML image element to check
+ * @returns True if the image source is a remote URL
+ */
+export function isRemoteImage(img: HTMLImageElement): boolean {
+	const src = img.src || '';
+	return src.startsWith('http://') || src.startsWith('https://');
+}
+
+/**
  * Logs error messages with timestamp.
  * @param args - Arguments to log
  */
