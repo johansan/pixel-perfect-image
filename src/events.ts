@@ -120,7 +120,7 @@ export async function handleImageWheel(this: PixelPerfectImage, evt: WheelEvent,
 	if (!result) return;
 
 	const { width } = await this.readImageDimensions(result.imgFile);
-	const customWidth = this.getCurrentImageWidth(target, result.activeFile, result.imgFile);
+	const customWidth = this.getCurrentImageWidth(result.activeFile, result.imgFile);
 	
 	// Use the custom width if set, otherwise use original width
 	const currentWidth = customWidth ?? width;
@@ -175,7 +175,7 @@ export function handleImageClick(this: PixelPerfectImage, ev: MouseEvent): void 
 				}
 			}
 		})
-		.catch((error: any) => {
+		.catch((error: unknown) => {
 			let action = 'perform action';
 			if (this.settings.cmdCtrlClickBehavior === 'open-in-new-tab') {
 				action = 'open image in new tab';

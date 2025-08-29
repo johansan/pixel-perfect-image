@@ -56,7 +56,7 @@ export function parseFileNameFromSrc(this: PixelPerfectImage, src: string): stri
 
 		// Extract just the trailing filename portion
 		return pathWithoutQuery.substring(slashIdx + 1);
-	} catch (error) {
+	} catch {
 		// Handle malformed URLs gracefully
 		return null;
 	}
@@ -133,7 +133,6 @@ export function openInExternalEditor(this: PixelPerfectImage, filePath: string) 
 		if (error) {
 			errorLog(`Error launching ${editorName}:`, error);
 			new Notice(`Could not open file in ${editorName}.`);
-		} else {
 		}
 	});
 }

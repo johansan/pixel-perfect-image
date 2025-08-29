@@ -85,7 +85,6 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		// Main toggle for individual menu options
-		let menuSubSettingsEl: HTMLElement;
 		new Setting(containerEl)
 			.setName("Toggle individual menu options")
 			.setDesc("Show settings to toggle individual menu items")
@@ -99,7 +98,7 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 				}));
 
 		// Container for menu sub-settings
-		menuSubSettingsEl = containerEl.createDiv('pixel-perfect-sub-settings');
+		const menuSubSettingsEl = containerEl.createDiv('pixel-perfect-sub-settings');
 
 		new Setting(menuSubSettingsEl)
 			.setName("File information")

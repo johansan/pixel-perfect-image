@@ -34,7 +34,7 @@ export function isRemoteImage(img: HTMLImageElement): boolean {
  * Logs error messages with timestamp.
  * @param args - Arguments to log
  */
-export function errorLog(...args: any[]) {
+export function errorLog(...args: unknown[]) {
 	const timestamp = new Date().toTimeString().split(' ')[0];
 	console.error(`${timestamp}`, ...args);
 }

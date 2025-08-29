@@ -1,5 +1,3 @@
-import { App } from 'obsidian';
-
 declare module 'obsidian' {
 	interface App {
 		showInFolder(path: string): void;

@@ -25,20 +25,20 @@ import { errorLog } from './utils';
  */
 export function updateLinks(this: PixelPerfectImage, text: string, activeFile: TFile, imageFile: TFile, transform: (params: string[]) => string[]): string {
 	// Handle wiki-style links (![[image.png|100]])
-	text = text.replace(WIKILINK_IMAGE_REGEX, (_, opening, linkInner, closing) => {
+	text = text.replace(WIKILINK_IMAGE_REGEX, (match, linkInner) => {
 		// Parse the link components (path, hash, params)
 		const link = parseLinkComponents.call(this, linkInner);
 		
 		// Skip if this link doesn't point to our target image
 		if (!resolveLink.call(this, link.path, activeFile, imageFile)) {
-			return _;  // Return original match unchanged
+			return match;  // Return original match unchanged
 		}
 
 		// Transform the parameters (e.g., change width)
 		link.params = transform(link.params);
 		// Rebuild the link with new parameters
 		const newLink = buildLinkPath.call(this, link);
-		return `${opening}${newLink}${closing}`;  // Reconstruct full wikilink
+		return `![[${newLink}]]`;  // Reconstruct full wikilink
 	});
 
 	// Handle markdown-style links (![alt|100](image.png))
@@ -93,7 +93,7 @@ export function parseLinkComponents(this: PixelPerfectImage, mainPart: string, l
 	if (linkPath) {
 		try {
 			pathToParse = decodeURIComponent(pathToParse);
-		} catch (e) {
+		} catch {
 			// If decoding fails, use the original path
 		}
 	}
@@ -110,7 +110,7 @@ export function parseLinkComponents(this: PixelPerfectImage, mainPart: string, l
 	const [path, ...params] = (linkPath ? mainPart : pathWithoutHash).split("|");
 	
 	// Decode the final path for markdown links
-	let finalPath = linkPath ? pathWithoutHash : path;
+	const finalPath = linkPath ? pathWithoutHash : path;
 	
 	return {
 		path: finalPath,         // Decoded path for proper file resolution
@@ -261,7 +261,7 @@ export async function removeImageLinks(this: PixelPerfectImage, imageFile: TFile
 	let replacedText = contentWithoutFrontmatter;
 	
 	// Remove wiki-style links (![[image.png|100]])
-	replacedText = replacedText.replace(WIKILINK_IMAGE_REGEX, (match, opening, linkInner, closing) => {
+	replacedText = replacedText.replace(WIKILINK_IMAGE_REGEX, (match, linkInner) => {
 		// Parse the link components
 		const link = parseLinkComponents.call(this, linkInner);
 		

@@ -1,7 +1,8 @@
-import { Menu, Notice, Platform } from 'obsidian';
+import { FileSystemAdapter, Menu, Notice, Platform, normalizePath } from 'obsidian';
 import type PixelPerfectImage from './main';
 import { findImageElement, errorLog, isRemoteImage } from './utils';
 import { getExternalEditorPath } from './settings';
+import { join } from 'path';
 
 /**
  * Registers a context menu handler for images in the editor.
@@ -13,7 +14,6 @@ export function registerImageContextMenu(this: PixelPerfectImage): void {
 	
 	// Add mobile long-press support
 	let longPressTimer: NodeJS.Timeout;
-	let isLongPress = false;
 	
 	this.registerDomEvent(document, 'touchstart', (ev: TouchEvent) => {
 		// Ignore multi-touch events to avoid interfering with pinch zooming
@@ -22,9 +22,7 @@ export function registerImageContextMenu(this: PixelPerfectImage): void {
 		const img = findImageElement(ev.target);
 		if (!img) return;
 		
-		isLongPress = false;
 		longPressTimer = setTimeout(() => {
-			isLongPress = true;
 			handleContextMenu.call(this, ev);
 		}, 500); // 500ms long press
 	}, true);
@@ -120,7 +118,7 @@ export async function addDimensionsMenuItem(this: PixelPerfectImage, menu: Menu,
 		const { width, height } = await this.readImageDimensions(result.imgFile);
 
 		// Get current scale if set
-		const currentScale = this.calculateImageScale(img, result.activeFile, result.imgFile, width);
+		const currentScale = this.calculateImageScale(result.activeFile, result.imgFile, width);
 		const scaleText = currentScale !== null ? ` @ ${currentScale}%` : '';
 
 		// Add filename menu item with scale
@@ -212,8 +210,13 @@ export async function addResizeMenuItems(this: PixelPerfectImage, menu: Menu, ev
 			const result = await this.getImageFileWithErrorHandling(img);
 			if (!result) return;
 			
-			// @ts-ignore - Using Electron's __dirname global
-			const vaultPath = (this.app.vault.adapter as any).basePath;
+			// Get vault path from adapter
+			const adapter = this.app.vault.adapter;
+			if (!(adapter instanceof FileSystemAdapter)) {
+				new Notice('Cannot copy path - not using file system adapter');
+				return;
+			}
+			const vaultPath = adapter.getBasePath();
 			const fullPath = join(vaultPath, normalizePath(result.imgFile.path));
 			await navigator.clipboard.writeText(fullPath);
 			new Notice('File path copied to clipboard');
@@ -231,7 +234,7 @@ export async function addResizeMenuItems(this: PixelPerfectImage, menu: Menu, ev
 	
 	if (result) {
 		const { width } = await this.readImageDimensions(result.imgFile);
-		currentWidth = this.getCurrentImageWidth(img, result.activeFile, result.imgFile);
+		currentWidth = this.getCurrentImageWidth(result.activeFile, result.imgFile);
 		currentScale = currentWidth !== null ? Math.round((currentWidth / width) * 100) : null;
 	}
 
@@ -387,7 +390,3 @@ export function addFileOperationMenuItems(this: PixelPerfectImage, menu: Menu, t
 		);
 	}
 }
-
-// Import necessary functions from node modules for join and normalizePath
-import { join } from 'path';
-import { normalizePath } from 'obsidian';

@@ -40,7 +40,7 @@ export class FileNameInputModal extends Modal {
 		const buttonContainer = form.createDiv();
 		buttonContainer.addClass('pixel-perfect-button-container');
 
-		const submitButton = buttonContainer.createEl("button", { 
+		buttonContainer.createEl("button", { 
 			text: "Rename",
 			type: "submit",
 			cls: 'mod-cta' // Add Obsidian's accent class

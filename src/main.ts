@@ -1,7 +1,5 @@
-import { debounce, Menu, MarkdownView, Notice, Plugin, TFile, normalizePath, Platform, FileSystemAdapter, Modal, App } from 'obsidian';
-import { PixelPerfectImageSettings, DEFAULT_SETTINGS, PixelPerfectImageSettingTab, getExternalEditorPath } from './settings';
-import { join } from 'path';
-import { exec } from "child_process";
+import { Plugin } from 'obsidian';
+import { PixelPerfectImageSettings, DEFAULT_SETTINGS, PixelPerfectImageSettingTab } from './settings';
 
 // Import all types
 import './types';
@@ -10,7 +8,7 @@ import './types';
 import { setModifierKeyState, registerWheelEvents, isModifierKeyMatch, isModifierKeyStillHeld, handleImageWheel, handleImageClick } from './events';
 
 // Import menu functions
-import { registerImageContextMenu, handleContextMenu, addDimensionsMenuItem, addResizeMenuItems, addFileOperationMenuItems, addMenuItem, addInfoMenuItem, createMenuClickHandler } from './menu';
+import { registerImageContextMenu, handleContextMenu, addDimensionsMenuItem, addResizeMenuItems, addFileOperationMenuItems, addMenuItem, createMenuClickHandler } from './menu';
 
 // Import image operations
 import { resizeImage, updateImageLinkWidth, removeImageWidth, readImageDimensions, calculateImageScale, getCurrentImageWidth, copyImageToClipboard } from './image-operations';
@@ -24,8 +22,6 @@ import { getFileForImage, parseFileNameFromSrc, getImageFileWithErrorHandling, s
 // Import utilities
 import { findImageElement, errorLog, isRemoteImage } from './utils';
 
-// Import modals
-import { FileNameInputModal } from './modals';
 
 export default class PixelPerfectImage extends Plugin {
 	settings: PixelPerfectImageSettings;
@@ -101,7 +97,7 @@ export default class PixelPerfectImage extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+		this.settings = { ...DEFAULT_SETTINGS, ...await this.loadData()};
 	}
 
 	async saveSettings() {
