@@ -23,15 +23,6 @@ If you love using Pixel Perfect Image, please consider [buying me a coffee](http
 - 🔄 **Works with both Wikilinks and standard Markdown image links**
 - 🔍 **Quick open in new tab:** CMD/CTRL + click to open image in new tab
 
-**Pixel Perfect** speaks your language!
-
-🇬🇧 **English:** Pixel Perfect  
-🇩🇪 **Deutsch:** Pixelgenau  
-🇪🇸 **Español:** Píxel Perfecto  
-🇫🇷 **Français:** Pixel Parfait  
-🇯🇵 **日本語:** ピクセルパーフェクト  
-🇨🇳 **中文:** 像素完美  
-
 ## How to Use
 
 1. Install the plugin from Obsidian's Community Plugins
