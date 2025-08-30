@@ -1,4 +1,4 @@
-import { moment } from 'obsidian';
+import { getLanguage } from 'obsidian';
 
 /**
  * Central export point for internationalization
@@ -28,7 +28,7 @@ const LANGUAGE_MAP: Record<string, TranslationStrings> = {
  * Gets the current language setting from Obsidian
  */
 export function getCurrentLanguage(): string {
-    return moment.locale();
+    return getLanguage();
 }
 
 /**
