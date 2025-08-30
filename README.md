@@ -12,16 +12,16 @@ If you love using Pixel Perfect Image, please consider [buying me a coffee](http
 
 ## Features
 
-- 📐 **Pixel perfect resize:** Quickly resize images to pixel perfect percentages (100%, 50%, 25%) or custom widths in pixels
-- 📋️ **Mousewheel support:** Quick resize with mousewheel (hold Alt/Option and scroll)
-- 📋 **Copy image to clipboard:** For quick paste into other programs
-- 🔗 **Copy local file path to clipboard:** If you want to access the image from terminal
-- 📂 **Show in Finder/Explorer:** Open file browser with your image selected
-- 🖼️ **Open in default system viewer:** Open the image in your default application
-- 🎨 **Open in External Editor:** Open the image directly in an external editor like Photoshop or Affinity Photo
-- ✏️ **Rename images:** Quickly rename image files right from the context menu
-- 🔄 **Works with both Wikilinks and standard Markdown image links**
-- 🔍 **Quick open in new tab:** CMD/CTRL + click to open image in new tab
+- **Pixel perfect resize:** Quickly resize images to pixel perfect percentages (100%, 50%, 25%) or custom widths in pixels
+- **Mousewheel support:** Quick resize with mousewheel (hold Alt/Option and scroll)
+- **Copy image to clipboard:** For quick paste into other programs
+- **Copy local file path to clipboard:** If you want to access the image from terminal
+- **Show in Finder/Explorer:** Open file browser with your image selected
+- **Open in default system viewer:** Open the image in your default application
+- **Open in External Editor:** Open the image directly in an external editor like Photoshop or Affinity Photo
+- **Rename images:** Quickly rename image files right from the context menu
+- **Works with both Wikilinks and standard Markdown image links**
+- **Quick open in new tab:** CMD/CTRL + click to open image in new tab
 
 ## How to Use
 
