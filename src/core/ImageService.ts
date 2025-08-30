@@ -2,6 +2,7 @@ import { MarkdownView, TFile } from 'obsidian';
 import type PixelPerfectImage from '../main';
 import { errorLog } from '../utils/utils';
 import { WIKILINK_IMAGE_REGEX, MARKDOWN_IMAGE_REGEX } from '../utils/constants';
+import { strings } from '../i18n';
 
 /**
  * Service for handling image operations like resizing, reading dimensions, and copying
@@ -255,7 +256,7 @@ export class ImageService {
             errorLog('Copy to clipboard failed:', error);
             // Check if it's a focus error and throw a more helpful message
             if (error instanceof Error && error.message.includes('Document is not focused')) {
-                throw new Error('Please click in the editor first, then try copying again');
+                throw new Error(strings.notices.clickInEditorFirst);
             }
             throw error;
         }

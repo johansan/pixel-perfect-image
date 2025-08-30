@@ -10,6 +10,15 @@ If you love using Pixel Perfect Image, please consider supporting its continued 
 
 ## Features
 
+**Pixel Perfect** is translated into six languages!
+
+🇬🇧 **English:** Pixel Perfect  
+🇩🇪 **Deutsch:** Pixelgenau  
+🇪🇸 **Español:** Píxel Perfecto  
+🇫🇷 **Français:** Pixel Parfait  
+🇯🇵 **日本語:** ピクセルパーフェクト  
+🇨🇳 **中文:** 像素完美  
+
 - 📐 **Pixel perfect resize:** Quickly resize images to pixel perfect percentages (100%, 50%, 25%) or custom widths in pixels
 - 📋️ **Mousewheel support:** Quick resize with mousewheel (hold Alt/Option and scroll)
 - 📋 **Copy image to clipboard:** For quick paste into other programs

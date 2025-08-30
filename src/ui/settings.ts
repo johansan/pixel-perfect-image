@@ -1,5 +1,6 @@
 import { App, PluginSettingTab, Setting, Platform } from 'obsidian';
 import PixelPerfectImage from '../main';
+import { strings } from '../i18n';
 
 
 export interface PixelPerfectImageSettings {
@@ -86,7 +87,7 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 
 		// Main toggle for individual menu options
 		new Setting(containerEl)
-			.setName("Toggle individual menu options")
+			.setName(strings.settings.headings.menuOptions)
 			.setDesc("Show settings to toggle individual menu items")
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.toggleIndividualMenuOptions)
@@ -101,8 +102,8 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 		const menuSubSettingsEl = containerEl.createDiv('pixel-perfect-sub-settings');
 
 		new Setting(menuSubSettingsEl)
-			.setName("File information")
-			.setDesc("Show filename and dimensions at top of menu")
+			.setName(strings.settings.items.fileInfo.name)
+			.setDesc(strings.settings.items.fileInfo.desc)
 			.addToggle(toggle => {
 				toggle
 					.setValue(this.plugin.settings.showFileInfo)
@@ -113,8 +114,8 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 			});
 
 		new Setting(menuSubSettingsEl)
-			.setName("Show in Finder/Explorer")
-			.setDesc("Show option to reveal image in system file explorer")
+			.setName(strings.settings.items.showInExplorer.name)
+			.setDesc(strings.settings.items.showInExplorer.desc)
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.showShowInFileExplorer)
 				.onChange(async (value) => {
@@ -123,8 +124,8 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(menuSubSettingsEl)
-			.setName("Rename image")
-			.setDesc("Show option to rename image file")
+			.setName(strings.settings.items.renameImage.name)
+			.setDesc(strings.settings.items.renameImage.desc)
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.showRenameOption)
 				.onChange(async (value) => {
@@ -133,8 +134,8 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(menuSubSettingsEl)
-			.setName("Delete image and link")
-			.setDesc("Show option to delete both image file and link")
+			.setName(strings.settings.items.deleteImage.name)
+			.setDesc(strings.settings.items.deleteImage.desc)
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.showDeleteImageOption)
 				.onChange(async (value) => {
@@ -143,8 +144,8 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(menuSubSettingsEl)
-			.setName("Open in new tab")
-			.setDesc("Show option to open image in new tab")
+			.setName(strings.settings.items.openInNewTab.name)
+			.setDesc(strings.settings.items.openInNewTab.desc)
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.showOpenInNewTab)
 				.onChange(async (value) => {
@@ -153,8 +154,8 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(menuSubSettingsEl)
-			.setName("Open in default app")
-			.setDesc("Show option to open image in default app")
+			.setName(strings.settings.items.openInDefaultApp.name)
+			.setDesc(strings.settings.items.openInDefaultApp.desc)
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.showOpenInDefaultApp)
 				.onChange(async (value) => {
@@ -163,11 +164,11 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName("Resize options")
-			.setDesc("Set resize options (comma-separated). Use % for percentages (e.g., 25%, 50%) or px for pixels (e.g., 600px, 800px)")
+			.setName(strings.settings.items.resizeOptions.name)
+			.setDesc(strings.settings.items.resizeOptions.desc)
 			.addText(text => {
 				text
-					.setPlaceholder("e.g., 25%, 50%, 100%, 600px")
+					.setPlaceholder(strings.settings.items.resizeOptions.placeholder)
 					.setValue(this.plugin.settings.customResizeSizes.join(', '))
 					.onChange(async (value) => {
 						// Parse comma-separated values, keeping units
@@ -186,15 +187,15 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 
 		const cmdKey = Platform.isMacOS ? 'CMD' : 'CTRL';
 		new Setting(containerEl)
-			.setName(`${cmdKey} + click behavior`)
-			.setDesc(`Choose what happens when you ${cmdKey} + click an image`)
+			.setName(strings.settings.items.cmdClickBehavior.name.replace('{cmd}', cmdKey))
+			.setDesc(strings.settings.items.cmdClickBehavior.desc.replace('{cmd}', cmdKey))
 			.addDropdown(dropdown => {
 				const editorName = this.plugin.settings.externalEditorName.trim() || 'external editor';
 				dropdown
-					.addOption('do-nothing', 'Do nothing')
-					.addOption('open-in-new-tab', 'Open in new tab')
-					.addOption('open-in-default-app', 'Open in default app')
-					.addOption('open-in-external-editor', `Open in ${editorName}`)
+					.addOption('do-nothing', strings.settings.items.cmdClickBehavior.options.doNothing)
+					.addOption('open-in-new-tab', strings.settings.items.cmdClickBehavior.options.openInNewTab)
+					.addOption('open-in-default-app', strings.settings.items.cmdClickBehavior.options.openInDefaultApp)
+					.addOption('open-in-external-editor', strings.settings.items.cmdClickBehavior.options.openInEditor.replace('{editor}', editorName))
 					.setValue(this.plugin.settings.cmdCtrlClickBehavior)
 					.onChange(async (value: 'do-nothing' | 'open-in-new-tab' | 'open-in-default-app' | 'open-in-external-editor') => {
 						this.plugin.settings.cmdCtrlClickBehavior = value;
@@ -205,12 +206,12 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 	
 		// Mousewheel zoom section
 		new Setting(containerEl)
-			.setName("Mousewheel zoom")
+			.setName(strings.settings.headings.mousewheelZoom)
 			.setHeading();
 
 		new Setting(containerEl)
-			.setName("Enable mousewheel zoom")
-			.setDesc("Hold modifier key and scroll to resize images")
+			.setName(strings.settings.items.enableWheelZoom.name)
+			.setDesc(strings.settings.items.enableWheelZoom.desc)
 			.addToggle(toggle => {
 				toggle
 					.setValue(this.plugin.settings.enableWheelZoom)
@@ -221,14 +222,14 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
-			.setName("Modifier key")
-			.setDesc("Key to hold while scrolling to zoom images")
+			.setName(strings.settings.items.modifierKey.name)
+			.setDesc(strings.settings.items.modifierKey.desc)
 			.addDropdown(dropdown => {
 				const isMac = Platform.isMacOS;
 				dropdown
-					.addOption('Alt', isMac ? 'Option' : 'Alt')
-					.addOption('Ctrl', 'Ctrl')
-					.addOption('Shift', 'Shift')
+					.addOption('Alt', isMac ? strings.settings.items.modifierKey.options.option : strings.settings.items.modifierKey.options.alt)
+					.addOption('Ctrl', strings.settings.items.modifierKey.options.ctrl)
+					.addOption('Shift', strings.settings.items.modifierKey.options.shift)
 					.setValue(this.plugin.settings.wheelModifierKey)
 					.onChange(async (value: 'Alt' | 'Ctrl' | 'Shift') => {
 						this.plugin.settings.wheelModifierKey = value;
@@ -237,12 +238,12 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
-			.setName("Zoom step size")
-			.setDesc("Percentage to zoom per scroll step")
+			.setName(strings.settings.items.zoomStepSize.name)
+			.setDesc(strings.settings.items.zoomStepSize.desc)
 			.addExtraButton(button => {
 				button
 					.setIcon("reset")
-					.setTooltip("Reset to default")
+					.setTooltip(strings.settings.items.zoomStepSize.resetToDefault)
 					.onClick(async () => {
 						this.plugin.settings.wheelZoomPercentage = DEFAULT_SETTINGS.wheelZoomPercentage;
 						await this.plugin.saveSettings();
@@ -272,8 +273,8 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
-			.setName("Invert scroll direction")
-			.setDesc("Invert the zoom direction when scrolling")
+			.setName(strings.settings.items.invertScroll.name)
+			.setDesc(strings.settings.items.invertScroll.desc)
 			.addToggle(toggle => {
 				toggle
 					.setValue(this.plugin.settings.invertScrollDirection)
@@ -284,15 +285,15 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 			});
 
 		new Setting(containerEl)
-			.setName("External editor")
+			.setName(strings.settings.headings.externalEditor)
 			.setHeading();
 
 		new Setting(containerEl)
-			.setName("External editor name")
-			.setDesc("Name of your external editor (e.g., Photoshop)")
+			.setName(strings.settings.items.externalEditorName.name)
+			.setDesc(strings.settings.items.externalEditorName.desc)
 			.addText(text => {
 				text
-					.setPlaceholder("Photoshop")
+					.setPlaceholder(strings.settings.items.externalEditorName.placeholder)
 					.setValue(this.plugin.settings.externalEditorName)
 					.onChange(async (value) => {
 						this.plugin.settings.externalEditorName = value;
@@ -302,11 +303,11 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 
 		if (Platform.isMacOS) {
 			new Setting(containerEl)
-				.setName("External editor path (macOS)")
-				.setDesc("Full path to your external editor application on macOS")
+				.setName(strings.settings.items.externalEditorPathMac.name)
+				.setDesc(strings.settings.items.externalEditorPathMac.desc)
 				.addText(text => {
 					text
-						.setPlaceholder("/Applications/Adobe Photoshop 2025/Adobe Photoshop 2025.app")
+						.setPlaceholder(strings.settings.items.externalEditorPathMac.placeholder)
 						.setValue(this.plugin.settings.externalEditorPathMac)
 						.onChange(async (value) => {
 							const cleanedPath = value.replace(/\\ /g, ' ');
@@ -318,11 +319,11 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 
 		if (Platform.isWin) {
 			new Setting(containerEl)
-				.setName("External editor path (Windows)")
-				.setDesc("Full path to your external editor application on Windows")
+				.setName(strings.settings.items.externalEditorPathWin.name)
+				.setDesc(strings.settings.items.externalEditorPathWin.desc)
 				.addText(text => {
 					text
-						.setPlaceholder("C:\\Program Files\\Adobe\\Adobe Photoshop 2025\\Photoshop.exe")
+						.setPlaceholder(strings.settings.items.externalEditorPathWin.placeholder)
 						.setValue(this.plugin.settings.externalEditorPathWin)
 						.onChange(async (value) => {
 							const cleanedPath = value.replace(/\\ /g, ' ');
@@ -334,12 +335,12 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 
 		// Advanced section
 		new Setting(containerEl)
-			.setName("Advanced")
+			.setName(strings.settings.headings.advanced)
 			.setHeading();
 
 		new Setting(containerEl)
-			.setName("Confirm before delete")
-			.setDesc("Show confirmation dialog before deleting files")
+			.setName(strings.settings.items.confirmDelete.name)
+			.setDesc(strings.settings.items.confirmDelete.desc)
 			.addToggle(toggle => toggle
 				.setValue(this.plugin.settings.confirmBeforeDelete)
 				.onChange(async (value) => {
@@ -348,8 +349,8 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 				}));
 
 		new Setting(containerEl)
-			.setName("Debug mode")
-			.setDesc("Enable debug logging to console")
+			.setName(strings.settings.items.debugMode.name)
+			.setDesc(strings.settings.items.debugMode.desc)
 			.addToggle(toggle => {
 				toggle
 					.setValue(this.plugin.settings.debugMode)

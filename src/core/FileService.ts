@@ -5,6 +5,7 @@ import { exec } from "child_process";
 import { FileNameInputModal, DeleteConfirmationModal } from '../ui/modals';
 import { errorLog } from '../utils/utils';
 import { getExternalEditorPath } from '../ui/settings';
+import { strings } from '../i18n';
 
 /**
  * Service for handling file operations like resolving image files, file system operations, and file manipulation
@@ -88,7 +89,7 @@ export class FileService {
             // Only show notification if we have a valid image element but can't find its file
             // This prevents errors when plugin is triggered on non-image elements
             if (img.naturalWidth > 0 || img.src) {
-                new Notice('Could not locate image file');
+                new Notice(strings.notices.couldNotLocateImage);
             }
             return null;
         }
@@ -118,14 +119,14 @@ export class FileService {
         const editorPath = getExternalEditorPath(this.plugin.settings);
         const editorName = this.plugin.settings.externalEditorName.trim() || "External Editor";
         if (!editorPath) {
-            new Notice(`Please set your ${editorName} path in Pixel Perfect Image settings.`);
+            new Notice(strings.notices.setEditorPath.replace('{editor}', editorName));
             return;
         }
 
         // 1. Get absolute path to the vault root
         const adapter = this.plugin.app.vault.adapter;
         if (!(adapter instanceof FileSystemAdapter)) {
-            new Notice('Cannot open file: Vault is not a FileSystemAdapter');
+            new Notice(strings.notices.cannotOpenFile);
             return;
         }
         const vaultPath = adapter.getBasePath();
@@ -145,7 +146,7 @@ export class FileService {
         exec(cmd, (error) => {
             if (error) {
                 errorLog(`Error launching ${editorName}:`, error);
-                new Notice(`Could not open file in ${editorName}.`);
+                new Notice(strings.notices.couldNotOpenInEditor.replace('{editor}', editorName));
             }
         });
     }
@@ -165,10 +166,10 @@ export class FileService {
 
             // Rename the file
             await this.plugin.app.fileManager.renameFile(file, newPath);
-            new Notice('Image renamed successfully');
+            new Notice(strings.notices.imageRenamed);
         } catch (error) {
             errorLog('Failed to rename file:', error);
-            new Notice('Failed to rename image');
+            new Notice(strings.notices.failedToRename);
         }
     }
 
@@ -203,13 +204,13 @@ export class FileService {
                 
                 // Show success message
                 if (linksRemoved) {
-                    new Notice('Image and links deleted successfully');
+                    new Notice(strings.notices.imageAndLinksDeleted);
                 } else {
-                    new Notice('Image deleted successfully');
+                    new Notice(strings.notices.imageDeleted);
                 }
             } catch (error) {
                 errorLog('Failed to delete image:', error);
-                new Notice('Failed to delete image and links');
+                new Notice(strings.notices.failedToDelete);
             }
         };
 

@@ -3,6 +3,7 @@ import type PixelPerfectImage from '../main';
 import { findImageElement, errorLog, isRemoteImage } from '../utils/utils';
 import { getExternalEditorPath } from './settings';
 import { join } from 'path';
+import { strings } from '../i18n';
 
 /**
  * Service for managing context menus and menu interactions
@@ -63,18 +64,18 @@ export class MenuService {
         
         if (isRemote) {
             // For remote images, show indicator and limited options
-            this.addInfoMenuItem(menu, 'Remote image', 'globe');
+            this.addInfoMenuItem(menu, strings.menu.remoteImage, 'globe');
             
             // Copy URL option for remote images
             this.addMenuItem(
                 menu,
-                'Copy image URL',
+                strings.menu.copyImageUrl,
                 'link',
                 async () => {
                     await navigator.clipboard.writeText(img.src);
-                    new Notice('Image URL copied to clipboard');
+                    new Notice(strings.notices.imageUrlCopied);
                 },
-                'Failed to copy image URL'
+                strings.notices.failedToCopyUrl
             );
         } else {
             // For local images, show all normal options
@@ -137,7 +138,7 @@ export class MenuService {
             this.addInfoMenuItem(menu, `${width} × ${height} px`, "info");
         } catch (error) {
             errorLog('Could not read dimensions:', error);
-            new Notice("Could not read image dimensions");
+            new Notice(strings.notices.couldNotReadDimensions);
         }
     }
 
@@ -198,19 +199,19 @@ export class MenuService {
         // Add copy to clipboard option first
         this.addMenuItem(
             menu,
-            'Copy image',
+            strings.menu.copyImage,
             'copy',
             async () => {
                 await this.plugin.imageService.copyImageToClipboard(img);
-                new Notice('Image copied to clipboard');
+                new Notice(strings.notices.imageCopied);
             },
-            'Failed to copy image to clipboard'
+            strings.notices.failedToCopyImage
         );
 
         // Add copy local path option
         this.addMenuItem(
             menu,
-            'Copy local path',
+            strings.menu.copyLocalPath,
             'link',
             async () => {
                 const result = await this.plugin.fileService.getImageFileWithErrorHandling(img);
@@ -219,15 +220,15 @@ export class MenuService {
                 // Get vault path from adapter
                 const adapter = this.plugin.app.vault.adapter;
                 if (!(adapter instanceof FileSystemAdapter)) {
-                    new Notice('Cannot copy path - not using file system adapter');
+                    new Notice(strings.notices.cannotCopyPath);
                     return;
                 }
                 const vaultPath = adapter.getBasePath();
                 const fullPath = join(vaultPath, normalizePath(result.imgFile.path));
                 await navigator.clipboard.writeText(fullPath);
-                new Notice('File path copied to clipboard');
+                new Notice(strings.notices.filePathCopied);
             },
-            'Failed to copy file path'
+            strings.notices.failedToCopyPath
         );
 
         // Add separator before resize options
@@ -252,7 +253,7 @@ export class MenuService {
                 
                 const value = parseInt(match[1]);
                 const unit = match[2];
-                const label = `Resize to ${sizeStr}`;
+                const label = strings.menu.resizeTo.replace('{size}', sizeStr);
                 const isPercentage = unit === '%';
                 const disabled = isPercentage ? (currentScale === value) : (currentWidth === value);
                 
@@ -261,7 +262,7 @@ export class MenuService {
                     label,
                     'image',
                     async () => await this.plugin.imageService.resizeImage(img, value, !isPercentage),
-                    `Failed to resize image to ${sizeStr}`,
+                    strings.notices.failedToResizeTo.replace('{size}', sizeStr),
                     disabled
                 );
             });
@@ -271,13 +272,13 @@ export class MenuService {
         if (result && currentScale !== null) {
             this.addMenuItem(
                 menu,
-                'Remove custom size',
+                strings.menu.removeCustomSize,
                 'reset',
                 async () => {
                     await this.plugin.imageService.removeImageWidth(result.imgFile);
-                    new Notice('Removed custom size from image');
+                    new Notice(strings.notices.customSizeRemoved);
                 },
-                'Failed to remove custom size from image'
+                strings.notices.failedToRemoveSize
             );
         }
     }
@@ -295,14 +296,14 @@ export class MenuService {
         if (this.plugin.settings.showShowInFileExplorer) {
             this.addMenuItem(
                 menu,
-                isMac ? 'Show in Finder' : 'Show in Explorer',
+                isMac ? strings.menu.showInFinder : strings.menu.showInExplorer,
                 'folder-open',
                 async () => {
                     const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
                     if (!result) return;
                     await this.plugin.fileService.showInSystemExplorer(result.imgFile);
                 },
-                'Failed to open system explorer'
+                strings.notices.failedToOpenExplorer
             );
         }
 
@@ -310,14 +311,14 @@ export class MenuService {
         if (this.plugin.settings.showRenameOption) {
             this.addMenuItem(
                 menu,
-                'Rename image',
+                strings.menu.renameImage,
                 'pencil',
                 async () => {
                     const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
                     if (!result) return;
                     await this.plugin.fileService.renameImage(result.imgFile);
                 },
-                'Failed to rename image'
+                strings.notices.failedToRenameImage
             );
         }
 
@@ -325,14 +326,14 @@ export class MenuService {
         if (this.plugin.settings.showDeleteImageOption) {
             this.addMenuItem(
                 menu,
-                'Delete image and link',
+                strings.menu.deleteImageAndLink,
                 'trash',
                 async () => {
                     const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
                     if (!result) return;
                     await this.plugin.fileService.deleteImageAndLink(result.imgFile);
                 },
-                'Failed to delete image'
+                strings.notices.failedToDeleteImage
             );
         }
 
@@ -345,14 +346,14 @@ export class MenuService {
         if (this.plugin.settings.showOpenInNewTab) {
             this.addMenuItem(
                 menu,
-                'Open in new tab',
+                strings.menu.openInNewTab,
                 'link-2',
                 async () => {
                     const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
                     if (!result) return;
                     await this.plugin.app.workspace.openLinkText(result.imgFile.path, '', true);
                 },
-                'Failed to open image in new tab'
+                strings.notices.failedToOpenInNewTab
             );
         }
 
@@ -360,14 +361,14 @@ export class MenuService {
         if (this.plugin.settings.showOpenInDefaultApp) {
             this.addMenuItem(
                 menu,
-                'Open in default app',
+                strings.menu.openInDefaultApp,
                 'image',
                 async () => {
                     const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
                     if (!result) return;
                     await this.plugin.fileService.openInDefaultApp(result.imgFile);
                 },
-                'Failed to open in default app'
+                strings.notices.failedToOpenInDefaultApp
             );
         }
 
@@ -377,14 +378,14 @@ export class MenuService {
             const editorName = this.plugin.settings.externalEditorName.trim() || "external editor";
             this.addMenuItem(
                 menu,
-                `Open in ${editorName}`,
+                strings.menu.openInEditor.replace('{editor}', editorName),
                 'edit',
                 async () => {
                     const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
                     if (!result) return;
                     await this.plugin.fileService.openInExternalEditor(result.imgFile.path);
                 },
-                `Failed to open image in ${editorName}`
+                strings.notices.failedToOpenInEditor.replace('{editor}', editorName)
             );
         }
     }

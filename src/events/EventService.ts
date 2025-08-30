@@ -1,6 +1,7 @@
 import { Notice, MarkdownView, TFile } from 'obsidian';
 import type PixelPerfectImage from '../main';
 import { findImageElement, errorLog } from '../utils/utils';
+import { strings } from '../i18n';
 
 export class EventService {
 	private plugin: PixelPerfectImage;
@@ -67,7 +68,7 @@ export class EventService {
 				await this.handleImageWheel(ev, img);
 			} catch (error) {
 				errorLog('Error handling wheel event:', error);
-				new Notice('Failed to resize image');
+				new Notice(strings.notices.failedToResize);
 			}
 		};
 
@@ -185,17 +186,17 @@ export class EventService {
 				}
 			})
 			.catch((error: unknown) => {
-				let action = 'perform action';
+				let action = strings.actions.performAction;
 				if (this.plugin.settings.cmdCtrlClickBehavior === 'open-in-new-tab') {
-					action = 'open image in new tab';
+					action = strings.actions.openInNewTab;
 				} else if (this.plugin.settings.cmdCtrlClickBehavior === 'open-in-default-app') {
-					action = 'open image in default app';
+					action = strings.actions.openInDefaultApp;
 				} else if (this.plugin.settings.cmdCtrlClickBehavior === 'open-in-external-editor') {
 					const editorName = this.plugin.settings.externalEditorName.trim() || 'external editor';
-					action = `open image in ${editorName}`;
+					action = strings.actions.openInEditor.replace('{editor}', editorName);
 				}
 				errorLog(`Failed to ${action}:`, error);
-				new Notice(`Failed to ${action}`);
+				new Notice(strings.notices.failedToPerformAction.replace('{action}', action));
 			});
 	}
 

@@ -1,4 +1,5 @@
 import { Modal, App, TFile } from 'obsidian';
+import { strings } from '../i18n';
 
 export class FileNameInputModal extends Modal {
 	private result: string | null = null;
@@ -17,7 +18,7 @@ export class FileNameInputModal extends Modal {
 		contentEl.addClass('pixel-perfect-rename-modal');
 
 		contentEl.createEl("h2", { 
-			text: "Rename image",
+			text: strings.modals.rename.title,
 			cls: 'modal-title'
 		});
 
@@ -41,13 +42,13 @@ export class FileNameInputModal extends Modal {
 		buttonContainer.addClass('pixel-perfect-button-container');
 
 		buttonContainer.createEl("button", { 
-			text: "Rename",
+			text: strings.modals.rename.renameButton,
 			type: "submit",
 			cls: 'mod-cta' // Add Obsidian's accent class
 		});
 		
 		const cancelButton = buttonContainer.createEl("button", { 
-			text: "Cancel",
+			text: strings.modals.rename.cancelButton,
 			type: "button"
 		});
 		
@@ -95,7 +96,7 @@ export class DeleteConfirmationModal extends Modal {
 		contentEl.addClass('pixel-perfect-delete-modal');
 
 		contentEl.createEl("h2", { 
-			text: "Delete image",
+			text: strings.modals.delete.title,
 			cls: 'modal-title'
 		});
 
@@ -103,11 +104,11 @@ export class DeleteConfirmationModal extends Modal {
 		messageDiv.addClass('pixel-perfect-delete-message');
 		
 		messageDiv.createEl("p", { 
-			text: `Are you sure you want to delete "${this.file.name}"?`
+			text: strings.modals.delete.confirmMessage.replace('{filename}', this.file.name)
 		});
 		
 		messageDiv.createEl("p", { 
-			text: "This will delete both the image file and all links to it in the current document.",
+			text: strings.modals.delete.warningMessage,
 			cls: 'mod-warning'
 		});
 
@@ -115,12 +116,12 @@ export class DeleteConfirmationModal extends Modal {
 		buttonContainer.addClass('pixel-perfect-button-container');
 
 		const deleteButton = buttonContainer.createEl("button", { 
-			text: "Delete",
+			text: strings.modals.delete.deleteButton,
 			cls: 'mod-warning' // Red styling for delete action
 		});
 		
 		const cancelButton = buttonContainer.createEl("button", { 
-			text: "Cancel"
+			text: strings.modals.delete.cancelButton
 		});
 		
 		deleteButton.addEventListener("click", () => {
