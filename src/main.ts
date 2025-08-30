@@ -1,99 +1,48 @@
 import { Plugin } from 'obsidian';
-import { PixelPerfectImageSettings, DEFAULT_SETTINGS, PixelPerfectImageSettingTab } from './settings';
+import { PixelPerfectImageSettings, DEFAULT_SETTINGS, PixelPerfectImageSettingTab } from './ui/settings';
 
-// Import all types
-import './types';
+// Import service classes
+import { EventService } from './events/EventService';
+import { MenuService } from './ui/MenuService';
+import { ImageService } from './core/ImageService';
+import { LinkService } from './core/LinkService';
+import { FileService } from './core/FileService';
 
-// Import event handlers
-import { setModifierKeyState, registerWheelEvents, isModifierKeyMatch, isModifierKeyStillHeld, handleImageWheel, handleImageClick } from './events';
-
-// Import menu functions
-import { registerImageContextMenu, handleContextMenu, addDimensionsMenuItem, addResizeMenuItems, addFileOperationMenuItems, addMenuItem, createMenuClickHandler } from './menu';
-
-// Import image operations
-import { resizeImage, updateImageLinkWidth, removeImageWidth, readImageDimensions, calculateImageScale, getCurrentImageWidth, copyImageToClipboard } from './image-operations';
-
-// Import link parser functions
-import { updateLinks, parseLinkComponents, buildLinkPath, updateImageLinks, resolveLink, removeImageLinks } from './link-parser';
-
-// Import file utilities
-import { getFileForImage, parseFileNameFromSrc, getImageFileWithErrorHandling, showInSystemExplorer, openInDefaultApp, openInExternalEditor, renameImage, promptForNewName, deleteImageAndLink } from './file-utils';
-
-// Import utilities
-import { findImageElement, errorLog, isRemoteImage } from './utils';
-
+// Import types
+import './utils/types';
 
 export default class PixelPerfectImage extends Plugin {
 	settings: PixelPerfectImageSettings;
-	/** Cache to store image dimensions to avoid repeated file reads */
-	dimensionCache = new Map<string, { width: number; height: number }>();
-	isModifierKeyHeld = false;
-	wheelEventCleanup: (() => void) | null = null;
-
-	// Bind all imported functions to this instance
-	setModifierKeyState = setModifierKeyState.bind(this);
-	registerWheelEvents = registerWheelEvents.bind(this);
-	isModifierKeyMatch = isModifierKeyMatch.bind(this);
-	isModifierKeyStillHeld = isModifierKeyStillHeld.bind(this);
-	handleImageWheel = handleImageWheel.bind(this);
-	handleImageClick = handleImageClick.bind(this);
 	
-	registerImageContextMenu = registerImageContextMenu.bind(this);
-	handleContextMenu = handleContextMenu.bind(this);
-	addDimensionsMenuItem = addDimensionsMenuItem.bind(this);
-	addResizeMenuItems = addResizeMenuItems.bind(this);
-	addFileOperationMenuItems = addFileOperationMenuItems.bind(this);
-	addMenuItem = addMenuItem.bind(this);
-	createMenuClickHandler = createMenuClickHandler.bind(this);
-	
-	resizeImage = resizeImage.bind(this);
-	updateImageLinkWidth = updateImageLinkWidth.bind(this);
-	removeImageWidth = removeImageWidth.bind(this);
-	readImageDimensions = readImageDimensions.bind(this);
-	calculateImageScale = calculateImageScale.bind(this);
-	getCurrentImageWidth = getCurrentImageWidth.bind(this);
-	copyImageToClipboard = copyImageToClipboard.bind(this);
-	
-	updateLinks = updateLinks.bind(this);
-	parseLinkComponents = parseLinkComponents.bind(this);
-	buildLinkPath = buildLinkPath.bind(this);
-	updateImageLinks = updateImageLinks.bind(this);
-	resolveLink = resolveLink.bind(this);
-	removeImageLinks = removeImageLinks.bind(this);
-	
-	getFileForImage = getFileForImage.bind(this);
-	parseFileNameFromSrc = parseFileNameFromSrc.bind(this);
-	getImageFileWithErrorHandling = getImageFileWithErrorHandling.bind(this);
-	showInSystemExplorer = showInSystemExplorer.bind(this);
-	openInDefaultApp = openInDefaultApp.bind(this);
-	openInExternalEditor = openInExternalEditor.bind(this);
-	renameImage = renameImage.bind(this);
-	promptForNewName = promptForNewName.bind(this);
-	deleteImageAndLink = deleteImageAndLink.bind(this);
-	
-	findImageElement = findImageElement.bind(this);
-	errorLog = errorLog.bind(this);
-	isRemoteImage = isRemoteImage.bind(this);
+	// Services
+	eventService: EventService;
+	menuService: MenuService;
+	imageService: ImageService;
+	linkService: LinkService;
+	fileService: FileService;
 
 	async onload() {
 		await this.loadSettings();
+		
+		// Initialize services
+		this.eventService = new EventService(this);
+		this.menuService = new MenuService(this);
+		this.imageService = new ImageService(this);
+		this.linkService = new LinkService(this);
+		this.fileService = new FileService(this);
+		
+		// Setup plugin
 		this.addSettingTab(new PixelPerfectImageSettingTab(this.app, this));
-		this.registerImageContextMenu();
 		
-		// Add click handler for CMD/CTRL + click
-		this.registerDomEvent(document, 'click', this.handleImageClick);
-		
-		// Register mousewheel zoom events
-		this.registerEvent(
-			this.app.workspace.on("layout-change", () => this.registerWheelEvents(window))
-		);
-		this.registerWheelEvents(window);
+		// Register features
+		this.menuService.registerImageContextMenu();
+		this.eventService.registerEvents();
 	}
 
 	onunload() {
-		// Reset state
-		this.isModifierKeyHeld = false;
-		this.dimensionCache.clear();
+		// Cleanup services
+		this.eventService.cleanup();
+		this.imageService.clearDimensionCache();
 	}
 
 	async loadSettings() {

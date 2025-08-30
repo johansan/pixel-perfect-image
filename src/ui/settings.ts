@@ -1,5 +1,5 @@
 import { App, PluginSettingTab, Setting, Platform } from 'obsidian';
-import PixelPerfectImage from './main';
+import PixelPerfectImage from '../main';
 
 
 export interface PixelPerfectImageSettings {
