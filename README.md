@@ -114,6 +114,11 @@ This will ensure the best experience with Pixel Perfect Image's right click menu
 
 If you're using the [Image Converter plugin](https://github.com/xryul/obsidian-image-converter), you should disable its "Right-click menu" option in settings to prevent conflicts with Pixel Perfect Image's context menu.
 
+## Technical Details
+
+This plugin follows strict code quality standards using [Obsidian's official ESLint plugin](https://github.com/obsidianmd/eslint-plugin) and the build process enforces zero tolerance for errors and warnings. All TypeScript is fully typed with no explicit any, and the codebase is validated with ESLint, Prettier, and dead code detection.
+
+
 ## Support
 
 If you have any questions, suggestions, or issues, please open an issue on the [GitHub repository](https://github.com/johansan/pixel-perfect-image).
