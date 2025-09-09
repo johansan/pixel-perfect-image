@@ -144,6 +144,11 @@ export const STRINGS_JA = {
                 desc: 'Windows上の外部エディターアプリケーションへのフルパス',
                 placeholder: 'C:\\Program Files\\Adobe\\Adobe Photoshop 2025\\Photoshop.exe'
             },
+            externalEditorPathLinux: {
+                name: '外部エディターのパス（Linux）',
+                desc: 'Linux の外部エディターアプリのフルパス',
+                placeholder: '/usr/bin/gimp'
+            },
             confirmDelete: {
                 name: '削除前に確認',
                 desc: 'ファイル削除前に確認ダイアログを表示します'

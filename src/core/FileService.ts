@@ -1,7 +1,7 @@
 import { TFile, Notice, FileSystemAdapter, Platform, normalizePath } from 'obsidian';
 import type PixelPerfectImage from '../main';
 import { join } from 'path';
-import { exec } from "child_process";
+import { spawn } from "child_process";
 import { FileNameInputModal, DeleteConfirmationModal } from '../ui/modals';
 import { errorLog } from '../utils/utils';
 import { getExternalEditorPath } from '../ui/settings';
@@ -133,22 +133,40 @@ export class FileService {
         // 2. Combine vault root with the relative Obsidian path
         const absoluteFilePath = join(vaultPath, normalizePath(filePath));
 
-        // 3. Choose command depending on macOS vs Windows
-        let cmd: string;
-        if (Platform.isMacOS) {
-            // On macOS, use `open -a "/Applications/Editor.app" "/path/to/file.png"`
-            cmd = `open -a "${editorPath}" "${absoluteFilePath}"`;
-        } else {
-            // On Windows, quote-wrap the exe and file path
-            cmd = `"${editorPath}" "${absoluteFilePath}"`;
-        }
+        try {
+            let child;
+            if (Platform.isMacOS) {
+                // macOS: use the system opener with the specified app
+                child = spawn('open', ['-a', editorPath, absoluteFilePath], {
+                    detached: true,
+                    stdio: 'ignore'
+                });
+            } else if (Platform.isWin) {
+                // Windows: launch editor executable directly
+                child = spawn(editorPath, [absoluteFilePath], {
+                    detached: true,
+                    stdio: 'ignore',
+                    shell: false
+                });
+            } else {
+                // Other desktop platforms (best-effort): try launching editorPath
+                child = spawn(editorPath, [absoluteFilePath], {
+                    detached: true,
+                    stdio: 'ignore',
+                    shell: false
+                });
+            }
 
-        exec(cmd, (error) => {
-            if (error) {
+            child.on('error', (error) => {
                 errorLog(`Error launching ${editorName}:`, error);
                 new Notice(strings.notices.couldNotOpenInEditor.replace('{editor}', editorName));
-            }
-        });
+            });
+            // Detach so the editor can live on its own
+            child.unref();
+        } catch (error) {
+            errorLog(`Error launching ${editorName}:`, error);
+            new Notice(strings.notices.couldNotOpenInEditor.replace('{editor}', editorName));
+        }
     }
 
     /**

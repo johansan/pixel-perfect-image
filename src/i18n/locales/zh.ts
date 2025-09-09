@@ -144,6 +144,11 @@ export const STRINGS_ZH = {
                 desc: 'Windows上外部编辑器应用程序的完整路径',
                 placeholder: 'C:\\Program Files\\Adobe\\Adobe Photoshop 2025\\Photoshop.exe'
             },
+            externalEditorPathLinux: {
+                name: '外部编辑器路径（Linux）',
+                desc: 'Linux 上外部编辑器的完整路径',
+                placeholder: '/usr/bin/gimp'
+            },
             confirmDelete: {
                 name: '删除前确认',
                 desc: '删除文件前显示确认对话框'

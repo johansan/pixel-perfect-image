@@ -144,6 +144,11 @@ export const STRINGS_DE = {
                 desc: 'Vollständiger Pfad zu Ihrer externen Editor-Anwendung auf Windows',
                 placeholder: 'C:\\Program Files\\Adobe\\Adobe Photoshop 2025\\Photoshop.exe'
             },
+            externalEditorPathLinux: {
+                name: 'Pfad zum externen Editor (Linux)',
+                desc: 'Vollständiger Pfad zu Ihrer externen Editor-Anwendung unter Linux',
+                placeholder: '/usr/bin/gimp'
+            },
             confirmDelete: {
                 name: 'Vor dem Löschen bestätigen',
                 desc: 'Bestätigungsdialog vor dem Löschen von Dateien anzeigen'

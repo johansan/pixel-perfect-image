@@ -27,6 +27,7 @@ export interface PixelPerfectImageSettings {
 	externalEditorName: string;
 	externalEditorPathMac: string;
 	externalEditorPathWin: string;
+	externalEditorPathLinux: string;
 
 	// Advanced settings
 	confirmBeforeDelete: boolean;
@@ -57,6 +58,7 @@ export const DEFAULT_SETTINGS: PixelPerfectImageSettings = {
 	externalEditorName: "",
 	externalEditorPathMac: "",
 	externalEditorPathWin: "",
+	externalEditorPathLinux: "",
 
 	// Advanced defaults
 	confirmBeforeDelete: true,
@@ -65,7 +67,9 @@ export const DEFAULT_SETTINGS: PixelPerfectImageSettings = {
 
 // Add helper function to get the correct path based on platform
 export function getExternalEditorPath(settings: PixelPerfectImageSettings): string {
-	return Platform.isMacOS ? settings.externalEditorPathMac : settings.externalEditorPathWin;
+	if (Platform.isMacOS) return settings.externalEditorPathMac;
+	if (Platform.isWin) return settings.externalEditorPathWin;
+	return settings.externalEditorPathLinux;
 }
 
 export class PixelPerfectImageSettingTab extends PluginSettingTab {
@@ -328,6 +332,23 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 						.onChange(async (value) => {
 							const cleanedPath = value.replace(/\\ /g, ' ');
 							this.plugin.settings.externalEditorPathWin = cleanedPath;
+							await this.plugin.saveSettings();
+						});
+				});
+		}
+
+		// Linux or other desktop platforms
+		if (!Platform.isMacOS && !Platform.isWin && !Platform.isMobile) {
+			new Setting(containerEl)
+				.setName(strings.settings.items.externalEditorPathLinux.name)
+				.setDesc(strings.settings.items.externalEditorPathLinux.desc)
+				.addText(text => {
+					text
+						.setPlaceholder(strings.settings.items.externalEditorPathLinux.placeholder)
+						.setValue(this.plugin.settings.externalEditorPathLinux)
+						.onChange(async (value) => {
+							const cleanedPath = value.trim();
+							this.plugin.settings.externalEditorPathLinux = cleanedPath;
 							await this.plugin.saveSettings();
 						});
 				});
