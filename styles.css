@@ -44,3 +44,11 @@
 .pixel-perfect-sub-settings {
   margin-inline-start: var(--size-4-5);
 }
+
+/* Make delete menu items red (items with trash icon) */
+.menu-item:has(.menu-item-icon svg.lucide-trash) {
+  color: var(--text-error);
+}
+.menu-item:has(.menu-item-icon svg.lucide-trash) .menu-item-icon {
+  color: var(--text-error);
+}

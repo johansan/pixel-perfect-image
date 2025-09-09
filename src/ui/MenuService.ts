@@ -257,10 +257,23 @@ export class MenuService {
                 const isPercentage = unit === '%';
                 const disabled = isPercentage ? (currentScale === value) : (currentWidth === value);
                 
+                // Choose icon based on unit type and value
+                let icon = 'image';
+                if (isPercentage) {
+                    if (value === 100) {
+                        icon = 'image';  // Original size (100%)
+                    } else {
+                        icon = 'percent';  // Any other percentage
+                    }
+                } else {
+                    // Use ruler/dimensions icon for pixel sizes
+                    icon = 'ruler';  // Fixed pixel size
+                }
+                
                 this.addMenuItem(
                     menu,
                     label,
-                    'image',
+                    icon,
                     async () => await this.plugin.imageService.resizeImage(img, value, !isPercentage),
                     strings.notices.failedToResizeTo.replace('{size}', sizeStr),
                     disabled
@@ -291,56 +304,6 @@ export class MenuService {
         if (Platform.isMobile) return;
 
         const isMac = Platform.isMacOS;
-
-        // Add show in system explorer option
-        if (this.plugin.settings.showShowInFileExplorer) {
-            this.addMenuItem(
-                menu,
-                isMac ? strings.menu.showInFinder : strings.menu.showInExplorer,
-                'folder-open',
-                async () => {
-                    const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
-                    if (!result) return;
-                    await this.plugin.fileService.showInSystemExplorer(result.imgFile);
-                },
-                strings.notices.failedToOpenExplorer
-            );
-        }
-
-        // Add rename option
-        if (this.plugin.settings.showRenameOption) {
-            this.addMenuItem(
-                menu,
-                strings.menu.renameImage,
-                'pencil',
-                async () => {
-                    const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
-                    if (!result) return;
-                    await this.plugin.fileService.renameImage(result.imgFile);
-                },
-                strings.notices.failedToRenameImage
-            );
-        }
-
-        // Add delete option
-        if (this.plugin.settings.showDeleteImageOption) {
-            this.addMenuItem(
-                menu,
-                strings.menu.deleteImageAndLink,
-                'trash',
-                async () => {
-                    const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
-                    if (!result) return;
-                    await this.plugin.fileService.deleteImageAndLink(result.imgFile);
-                },
-                strings.notices.failedToDeleteImage
-            );
-        }
-
-        // Add separator if any file operation was added
-        if (this.plugin.settings.showRenameOption || this.plugin.settings.showDeleteImageOption || this.plugin.settings.showShowInFileExplorer) {
-            menu.addSeparator();
-        }
 
         // Add open in new tab option
         if (this.plugin.settings.showOpenInNewTab) {
@@ -386,6 +349,56 @@ export class MenuService {
                     await this.plugin.fileService.openInExternalEditor(result.imgFile.path);
                 },
                 strings.notices.failedToOpenInEditor.replace('{editor}', editorName)
+            );
+        }
+
+        // Add separator before file operations
+        if (this.plugin.settings.showShowInFileExplorer || this.plugin.settings.showRenameOption || this.plugin.settings.showDeleteImageOption) {
+            menu.addSeparator();
+        }
+
+        // Add show in system explorer option
+        if (this.plugin.settings.showShowInFileExplorer) {
+            this.addMenuItem(
+                menu,
+                isMac ? strings.menu.showInFinder : strings.menu.showInExplorer,
+                isMac ? 'lucide-app-window-mac' : 'lucide-app-window',
+                async () => {
+                    const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
+                    if (!result) return;
+                    await this.plugin.fileService.showInSystemExplorer(result.imgFile);
+                },
+                strings.notices.failedToOpenExplorer
+            );
+        }
+
+        // Add rename option
+        if (this.plugin.settings.showRenameOption) {
+            this.addMenuItem(
+                menu,
+                strings.menu.renameImage,
+                'pencil',
+                async () => {
+                    const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
+                    if (!result) return;
+                    await this.plugin.fileService.renameImage(result.imgFile);
+                },
+                strings.notices.failedToRenameImage
+            );
+        }
+
+        // Add delete option (last)
+        if (this.plugin.settings.showDeleteImageOption) {
+            this.addMenuItem(
+                menu,
+                strings.menu.deleteImageAndLink,
+                'lucide-trash',
+                async () => {
+                    const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
+                    if (!result) return;
+                    await this.plugin.fileService.deleteImageAndLink(result.imgFile);
+                },
+                strings.notices.failedToDeleteImage
             );
         }
     }
