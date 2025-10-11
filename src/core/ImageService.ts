@@ -232,6 +232,23 @@ export class ImageService {
      */
     async copyImageToClipboard(targetImg: HTMLImageElement): Promise<void> {
         try {
+            // Attempt to get the image file from the vault
+            const result = await this.plugin.fileService.getImageFileWithErrorHandling(targetImg);
+            if (result) {
+                const { imgFile } = result;
+                // Read the image binary data from the vault
+                const data = await this.plugin.app.vault.readBinary(imgFile);
+                // Determine the correct MIME type based on file extension
+                const mimeType = this.getMimeTypeForExtension(imgFile.extension);
+                // Create a blob with the image data and correct MIME type
+                const blob = this.createBlob(data, mimeType);
+                // Create a clipboard item and write to system clipboard
+                const item = new ClipboardItem({ [mimeType]: blob });
+                await navigator.clipboard.write([item]);
+                return;
+            }
+
+            // Fallback: load image from URL and copy via canvas
             const img = await this.loadImage(targetImg.src, 'anonymous');
             const canvas = document.createElement('canvas');
             canvas.width = img.naturalWidth;
@@ -241,6 +258,7 @@ export class ImageService {
                 throw new Error('Failed to get canvas context');
             }
 
+            // Draw the image to canvas and convert to blob
             ctx.drawImage(img, 0, 0);
             const blob = await new Promise<Blob | null>((resolveBlob) => {
                 canvas.toBlob(resolveBlob);
@@ -250,6 +268,7 @@ export class ImageService {
                 throw new Error('Failed to create blob');
             }
 
+            // Write the blob to system clipboard
             const item = new ClipboardItem({ [blob.type]: blob });
             await navigator.clipboard.write([item]);
         } catch (error) {
@@ -260,5 +279,18 @@ export class ImageService {
             }
             throw error;
         }
+    }
+
+    /**
+     * Resolves the MIME type for a given image extension
+     */
+    private getMimeTypeForExtension(extension: string): string {
+        const normalized = extension.toLowerCase();
+        if (normalized === 'png') return 'image/png';
+        if (normalized === 'jpg' || normalized === 'jpeg') return 'image/jpeg';
+        if (normalized === 'gif') return 'image/gif';
+        if (normalized === 'webp') return 'image/webp';
+        if (normalized === 'svg') return 'image/svg+xml';
+        return 'image/*';
     }
 }
