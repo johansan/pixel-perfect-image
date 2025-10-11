@@ -15,6 +15,8 @@ export const STRINGS_ES = {
         renameImage: 'Renombrar imagen',
         deleteImageAndLink: 'Eliminar imagen y enlace',
         openInNewTab: 'Abrir en nueva pestaña',
+        openToTheRight: 'Abrir a la derecha',
+        openInNewWindow: 'Abrir en nueva ventana',
         openInDefaultApp: 'Abrir con aplicación predeterminada',
         openInEditor: 'Abrir en {editor}'
     },
@@ -53,6 +55,8 @@ export const STRINGS_ES = {
         failedToRenameImage: 'Error al renombrar la imagen',
         failedToDeleteImage: 'Error al eliminar la imagen',
         failedToOpenInNewTab: 'Error al abrir imagen en nueva pestaña',
+        failedToOpenToTheRight: 'Error al abrir imagen a la derecha',
+        failedToOpenInNewWindow: 'Error al abrir imagen en nueva ventana',
         failedToOpenInDefaultApp: 'Error al abrir con aplicación predeterminada',
         failedToOpenInEditor: 'Error al abrir imagen en {editor}'
     },
@@ -86,6 +90,14 @@ export const STRINGS_ES = {
             openInNewTab: {
                 name: 'Abrir en nueva pestaña',
                 desc: 'Mostrar opción para abrir imagen en nueva pestaña'
+            },
+            openToTheRight: {
+                name: 'Abrir a la derecha',
+                desc: 'Mostrar opción para abrir imagen en una división a la derecha'
+            },
+            openInNewWindow: {
+                name: 'Abrir en nueva ventana',
+                desc: 'Mostrar opción para abrir imagen en una nueva ventana de la aplicación'
             },
             openInDefaultApp: {
                 name: 'Abrir con aplicación predeterminada',
@@ -180,6 +192,8 @@ export const STRINGS_ES = {
     actions: {
         performAction: 'realizar acción',
         openInNewTab: 'abrir imagen en nueva pestaña',
+        openToTheRight: 'abrir imagen a la derecha',
+        openInNewWindow: 'abrir imagen en nueva ventana',
         openInDefaultApp: 'abrir imagen con aplicación predeterminada',
         openInEditor: 'abrir imagen en {editor}'
     }

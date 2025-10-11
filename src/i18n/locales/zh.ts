@@ -15,6 +15,8 @@ export const STRINGS_ZH = {
         renameImage: '重命名图像',
         deleteImageAndLink: '删除图像和链接',
         openInNewTab: '在新标签页中打开',
+        openToTheRight: '在右侧打开',
+        openInNewWindow: '在新窗口中打开',
         openInDefaultApp: '用默认应用打开',
         openInEditor: '在{editor}中打开'
     },
@@ -53,6 +55,8 @@ export const STRINGS_ZH = {
         failedToRenameImage: '重命名图像失败',
         failedToDeleteImage: '删除图像失败',
         failedToOpenInNewTab: '在新标签页中打开图像失败',
+        failedToOpenToTheRight: '在右侧打开图像失败',
+        failedToOpenInNewWindow: '在新窗口中打开图像失败',
         failedToOpenInDefaultApp: '用默认应用打开失败',
         failedToOpenInEditor: '在{editor}中打开图像失败'
     },
@@ -86,6 +90,14 @@ export const STRINGS_ZH = {
             openInNewTab: {
                 name: '在新标签页中打开',
                 desc: '显示在新标签页中打开图像的选项'
+            },
+            openToTheRight: {
+                name: '在右侧打开',
+                desc: '显示在右侧分屏中打开图像的选项'
+            },
+            openInNewWindow: {
+                name: '在新窗口中打开',
+                desc: '显示在新的应用窗口中打开图像的选项'
             },
             openInDefaultApp: {
                 name: '用默认应用打开',
@@ -180,6 +192,8 @@ export const STRINGS_ZH = {
     actions: {
         performAction: '执行操作',
         openInNewTab: '在新标签页中打开图像',
+        openToTheRight: '在右侧打开图像',
+        openInNewWindow: '在新窗口中打开图像',
         openInDefaultApp: '用默认应用打开图像',
         openInEditor: '在{editor}中打开图像'
     }

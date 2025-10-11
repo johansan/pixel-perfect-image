@@ -15,6 +15,8 @@ export const STRINGS_EN = {
         renameImage: 'Rename image',
         deleteImageAndLink: 'Delete image and link',
         openInNewTab: 'Open in new tab',
+        openToTheRight: 'Open to the right',
+        openInNewWindow: 'Open in new window',
         openInDefaultApp: 'Open in default app',
         openInEditor: 'Open in {editor}'
     },
@@ -53,6 +55,8 @@ export const STRINGS_EN = {
         failedToRenameImage: 'Failed to rename image',
         failedToDeleteImage: 'Failed to delete image',
         failedToOpenInNewTab: 'Failed to open image in new tab',
+        failedToOpenToTheRight: 'Failed to open image to the right',
+        failedToOpenInNewWindow: 'Failed to open image in new window',
         failedToOpenInDefaultApp: 'Failed to open in default app',
         failedToOpenInEditor: 'Failed to open image in {editor}'
     },
@@ -86,6 +90,14 @@ export const STRINGS_EN = {
             openInNewTab: {
                 name: 'Open in new tab',
                 desc: 'Show option to open image in new tab'
+            },
+            openToTheRight: {
+                name: 'Open to the right',
+                desc: 'Show option to open image in a right split'
+            },
+            openInNewWindow: {
+                name: 'Open in new window',
+                desc: 'Show option to open image in a new app window'
             },
             openInDefaultApp: {
                 name: 'Open in default app',
@@ -180,6 +192,8 @@ export const STRINGS_EN = {
     actions: {
         performAction: 'perform action',
         openInNewTab: 'open image in new tab',
+        openToTheRight: 'open image to the right',
+        openInNewWindow: 'open image in new window',
         openInDefaultApp: 'open image in default app',
         openInEditor: 'open image in {editor}'
     }

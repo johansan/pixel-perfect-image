@@ -15,6 +15,8 @@ export const STRINGS_DE = {
         renameImage: 'Bild umbenennen',
         deleteImageAndLink: 'Bild und Link löschen',
         openInNewTab: 'In neuem Tab öffnen',
+        openToTheRight: 'Nach rechts öffnen',
+        openInNewWindow: 'In neuem Fenster öffnen',
         openInDefaultApp: 'In Standard-App öffnen',
         openInEditor: 'In {editor} öffnen'
     },
@@ -53,6 +55,8 @@ export const STRINGS_DE = {
         failedToRenameImage: 'Umbenennen des Bildes fehlgeschlagen',
         failedToDeleteImage: 'Löschen des Bildes fehlgeschlagen',
         failedToOpenInNewTab: 'Öffnen des Bildes in neuem Tab fehlgeschlagen',
+        failedToOpenToTheRight: 'Öffnen des Bildes nach rechts fehlgeschlagen',
+        failedToOpenInNewWindow: 'Öffnen des Bildes in neuem Fenster fehlgeschlagen',
         failedToOpenInDefaultApp: 'Öffnen in Standard-App fehlgeschlagen',
         failedToOpenInEditor: 'Öffnen des Bildes in {editor} fehlgeschlagen'
     },
@@ -86,6 +90,14 @@ export const STRINGS_DE = {
             openInNewTab: {
                 name: 'In neuem Tab öffnen',
                 desc: 'Option zum Öffnen des Bildes in neuem Tab anzeigen'
+            },
+            openToTheRight: {
+                name: 'Nach rechts öffnen',
+                desc: 'Option zum Öffnen des Bildes in einem rechten Split anzeigen'
+            },
+            openInNewWindow: {
+                name: 'In neuem Fenster öffnen',
+                desc: 'Option zum Öffnen des Bildes in einem neuen Anwendungsfenster anzeigen'
             },
             openInDefaultApp: {
                 name: 'In Standard-App öffnen',
@@ -180,6 +192,8 @@ export const STRINGS_DE = {
     actions: {
         performAction: 'Aktion ausführen',
         openInNewTab: 'Bild in neuem Tab öffnen',
+        openToTheRight: 'Bild nach rechts öffnen',
+        openInNewWindow: 'Bild in neuem Fenster öffnen',
         openInDefaultApp: 'Bild in Standard-App öffnen',
         openInEditor: 'Bild in {editor} öffnen'
     }

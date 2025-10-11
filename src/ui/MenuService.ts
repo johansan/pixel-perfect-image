@@ -318,13 +318,18 @@ export class MenuService {
         if (Platform.isMobile) return;
 
         const isMac = Platform.isMacOS;
+        const editorPath = getExternalEditorPath(this.plugin.settings);
+        const hasExternalEditor = !!editorPath?.trim();
+        const hasOpenLeafOption = this.plugin.settings.showOpenInNewTab ||
+            this.plugin.settings.showOpenToTheRight ||
+            this.plugin.settings.showOpenInNewWindow;
 
         // Add open in new tab option
         if (this.plugin.settings.showOpenInNewTab) {
             this.addMenuItem(
                 menu,
                 strings.menu.openInNewTab,
-                'link-2',
+                'lucide-file-plus',
                 async () => {
                     const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
                     if (!result) return;
@@ -332,6 +337,44 @@ export class MenuService {
                 },
                 strings.notices.failedToOpenInNewTab
             );
+        }
+
+        // Add open to the right option
+        if (this.plugin.settings.showOpenToTheRight) {
+            this.addMenuItem(
+                menu,
+                strings.menu.openToTheRight,
+                'lucide-separator-vertical',
+                async () => {
+                    const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
+                    if (!result) return;
+                    const leaf = this.plugin.app.workspace.getLeaf('split', 'vertical');
+                    await leaf.openFile(result.imgFile);
+                    this.plugin.app.workspace.setActiveLeaf(leaf);
+                },
+                strings.notices.failedToOpenToTheRight
+            );
+        }
+
+        // Add open in new window option
+        if (this.plugin.settings.showOpenInNewWindow) {
+            this.addMenuItem(
+                menu,
+                strings.menu.openInNewWindow,
+                'lucide-app-window',
+                async () => {
+                    const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
+                    if (!result) return;
+                    const leaf = this.plugin.app.workspace.getLeaf('window');
+                    await leaf.openFile(result.imgFile);
+                    this.plugin.app.workspace.setActiveLeaf(leaf);
+                },
+                strings.notices.failedToOpenInNewWindow
+            );
+        }
+
+        if (hasOpenLeafOption && (this.plugin.settings.showOpenInDefaultApp || hasExternalEditor)) {
+            menu.addSeparator();
         }
 
         // Add open in default app option
@@ -350,8 +393,7 @@ export class MenuService {
         }
 
         // Add external editor option if path is set
-        const editorPath = getExternalEditorPath(this.plugin.settings);
-        if (editorPath?.trim()) {
+        if (hasExternalEditor) {
             const editorName = this.plugin.settings.externalEditorName.trim() || "external editor";
             this.addMenuItem(
                 menu,

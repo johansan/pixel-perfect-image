@@ -15,6 +15,8 @@ export const STRINGS_JA = {
         renameImage: '画像名を変更',
         deleteImageAndLink: '画像とリンクを削除',
         openInNewTab: '新しいタブで開く',
+        openToTheRight: '右に開く',
+        openInNewWindow: '新しいウィンドウで開く',
         openInDefaultApp: 'デフォルトアプリで開く',
         openInEditor: '{editor}で開く'
     },
@@ -53,6 +55,8 @@ export const STRINGS_JA = {
         failedToRenameImage: '画像名の変更に失敗しました',
         failedToDeleteImage: '画像の削除に失敗しました',
         failedToOpenInNewTab: '新しいタブで画像を開くのに失敗しました',
+        failedToOpenToTheRight: '右側で画像を開くのに失敗しました',
+        failedToOpenInNewWindow: '新しいウィンドウで画像を開くのに失敗しました',
         failedToOpenInDefaultApp: 'デフォルトアプリで開くのに失敗しました',
         failedToOpenInEditor: '{editor}で画像を開くのに失敗しました'
     },
@@ -86,6 +90,14 @@ export const STRINGS_JA = {
             openInNewTab: {
                 name: '新しいタブで開く',
                 desc: '画像を新しいタブで開くオプションを表示します'
+            },
+            openToTheRight: {
+                name: '右に開く',
+                desc: '画像を右側の分割で開くオプションを表示します'
+            },
+            openInNewWindow: {
+                name: '新しいウィンドウで開く',
+                desc: '画像を新しいウィンドウで開くオプションを表示します'
             },
             openInDefaultApp: {
                 name: 'デフォルトアプリで開く',
@@ -180,6 +192,8 @@ export const STRINGS_JA = {
     actions: {
         performAction: 'アクションを実行',
         openInNewTab: '新しいタブで画像を開く',
+        openToTheRight: '右側で画像を開く',
+        openInNewWindow: '新しいウィンドウで画像を開く',
         openInDefaultApp: 'デフォルトアプリで画像を開く',
         openInEditor: '{editor}で画像を開く'
     }

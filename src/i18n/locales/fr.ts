@@ -15,6 +15,8 @@ export const STRINGS_FR = {
         renameImage: 'Renommer l\'image',
         deleteImageAndLink: 'Supprimer l\'image et le lien',
         openInNewTab: 'Ouvrir dans un nouvel onglet',
+        openToTheRight: 'Ouvrir à droite',
+        openInNewWindow: 'Ouvrir dans une nouvelle fenêtre',
         openInDefaultApp: 'Ouvrir avec l\'application par défaut',
         openInEditor: 'Ouvrir dans {editor}'
     },
@@ -53,6 +55,8 @@ export const STRINGS_FR = {
         failedToRenameImage: 'Échec du renommage de l\'image',
         failedToDeleteImage: 'Échec de la suppression de l\'image',
         failedToOpenInNewTab: 'Échec de l\'ouverture de l\'image dans un nouvel onglet',
+        failedToOpenToTheRight: 'Échec de l\'ouverture de l\'image à droite',
+        failedToOpenInNewWindow: 'Échec de l\'ouverture de l\'image dans une nouvelle fenêtre',
         failedToOpenInDefaultApp: 'Échec de l\'ouverture avec l\'application par défaut',
         failedToOpenInEditor: 'Échec de l\'ouverture de l\'image dans {editor}'
     },
@@ -86,6 +90,14 @@ export const STRINGS_FR = {
             openInNewTab: {
                 name: 'Ouvrir dans un nouvel onglet',
                 desc: 'Afficher l\'option pour ouvrir l\'image dans un nouvel onglet'
+            },
+            openToTheRight: {
+                name: 'Ouvrir à droite',
+                desc: 'Afficher l\'option pour ouvrir l\'image dans une division à droite'
+            },
+            openInNewWindow: {
+                name: 'Ouvrir dans une nouvelle fenêtre',
+                desc: 'Afficher l\'option pour ouvrir l\'image dans une nouvelle fenêtre de l\'application'
             },
             openInDefaultApp: {
                 name: 'Ouvrir avec l\'application par défaut',
@@ -180,6 +192,8 @@ export const STRINGS_FR = {
     actions: {
         performAction: 'effectuer l\'action',
         openInNewTab: 'ouvrir l\'image dans un nouvel onglet',
+        openToTheRight: 'ouvrir l\'image à droite',
+        openInNewWindow: 'ouvrir l\'image dans une nouvelle fenêtre',
         openInDefaultApp: 'ouvrir l\'image avec l\'application par défaut',
         openInEditor: 'ouvrir l\'image dans {editor}'
     }

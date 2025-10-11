@@ -12,6 +12,8 @@ export interface PixelPerfectImageSettings {
 	showRenameOption: boolean;
 	showDeleteImageOption: boolean;
 	showOpenInNewTab: boolean;
+	showOpenToTheRight: boolean;
+	showOpenInNewWindow: boolean;
 	showOpenInDefaultApp: boolean;
 	// Other main settings
 	customResizeSizes: string[];  // Array of sizes like ['25%', '50%', '100%', '600px']
@@ -43,6 +45,8 @@ export const DEFAULT_SETTINGS: PixelPerfectImageSettings = {
 	showRenameOption: true,
 	showDeleteImageOption: true,
 	showOpenInNewTab: true,
+	showOpenToTheRight: true,
+	showOpenInNewWindow: true,
 	showOpenInDefaultApp: true,
 	// Other main settings
 	customResizeSizes: ['25%', '50%', '100%'],  // Default percentage sizes
@@ -154,6 +158,26 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.showOpenInNewTab)
 				.onChange(async (value) => {
 					this.plugin.settings.showOpenInNewTab = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(menuSubSettingsEl)
+			.setName(strings.settings.items.openToTheRight.name)
+			.setDesc(strings.settings.items.openToTheRight.desc)
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.showOpenToTheRight)
+				.onChange(async (value) => {
+					this.plugin.settings.showOpenToTheRight = value;
+					await this.plugin.saveSettings();
+				}));
+
+		new Setting(menuSubSettingsEl)
+			.setName(strings.settings.items.openInNewWindow.name)
+			.setDesc(strings.settings.items.openInNewWindow.desc)
+			.addToggle(toggle => toggle
+				.setValue(this.plugin.settings.showOpenInNewWindow)
+				.onChange(async (value) => {
+					this.plugin.settings.showOpenInNewWindow = value;
 					await this.plugin.saveSettings();
 				}));
 
