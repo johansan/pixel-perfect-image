@@ -1,4 +1,4 @@
-import { FileSystemAdapter, Menu, Notice, Platform, normalizePath } from 'obsidian';
+import { FileSystemAdapter, Menu, Notice, Platform, normalizePath, MarkdownView } from 'obsidian';
 import type PixelPerfectImage from '../main';
 import { findImageElement, errorLog, isRemoteImage } from '../utils/utils';
 import { getExternalEditorPath } from './settings';
@@ -50,6 +50,10 @@ export class MenuService {
     async handleContextMenu(ev: MouseEvent | TouchEvent) {
         // For touch events, ignore multi-touch to prevent triggering during pinch zoom
         if ('touches' in ev && ev.touches.length > 1) return;
+
+        // Only show menu when the active view is a markdown document
+        const markdownView = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!markdownView) return;
         
         const img = findImageElement(ev.target);
         if (!img) return;
