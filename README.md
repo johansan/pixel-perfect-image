@@ -80,22 +80,29 @@ You can configure multiple custom widths (e.g., 600, 800, 1200) in settings, whi
 The plugin offers several settings to customize its behavior:
 
 - **Menu options:**
+  - Toggle individual menu options (main toggle to show/hide menu customization)
   - Show file information in context menu
   - Show "Show in Explorer/Finder" option
   - Show rename option
+  - Show delete image and link option
   - Show "Open in new tab" option
+  - Show "Open to the right" option
+  - Show "Open in new window" option
   - Show "Open in default app" option
-  - Show resize options
-  - Custom resize widths in pixels (comma-separated, e.g., 600,800,1200)
+- **Resize options:**
+  - Custom resize sizes (comma-separated, supports percentages like 25%, 50% or pixels like 600px, 800px)
+- **CMD/CTRL + click behavior:**
+  - Configure what happens when CMD/CTRL + clicking an image (do nothing, open in new tab, open in default app, or open in external editor)
 - **Mousewheel zoom:**
   - Enable/disable mousewheel zoom
   - Choose modifier key (Alt/Ctrl/Shift)
   - Adjust zoom step size
   - Invert scroll direction
-- **External editor:** 
+- **External editor:**
   - Set editor name
-  - Configure path to external image editor (platform-specific)
-- **Developer options:**
+  - Configure path to external image editor (platform-specific for macOS, Windows, and Linux)
+- **Advanced:**
+  - Confirm before delete (show confirmation dialog before deleting files)
   - Debug mode for troubleshooting
 
 ## Known Issues
