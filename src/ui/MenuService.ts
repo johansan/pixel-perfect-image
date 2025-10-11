@@ -69,7 +69,8 @@ export class MenuService {
         if (isRemote) {
             // For remote images, show indicator and limited options
             this.addInfoMenuItem(menu, strings.menu.remoteImage, 'globe');
-            
+            this.addCopyImageMenuItem(menu, img);
+
             // Copy URL option for remote images
             this.addMenuItem(
                 menu,
@@ -191,16 +192,11 @@ export class MenuService {
     }
 
     /**
-     * Adds resize percentage options to the context menu.
-     * Each option will resize the image to the specified percentage of its original size.
-     * @param menu - The context menu to add items to
-     * @param ev - The original mouse event
+     * Adds the copy image menu item
+     * @param menu - The menu to add the item to
+     * @param img - The HTML image element
      */
-    async addResizeMenuItems(menu: Menu, ev: MouseEvent | TouchEvent): Promise<void> {
-        const img = findImageElement(ev.target);
-        if (!img) return;
-
-        // Add copy to clipboard option first
+    private addCopyImageMenuItem(menu: Menu, img: HTMLImageElement): void {
         this.addMenuItem(
             menu,
             strings.menu.copyImage,
@@ -211,6 +207,20 @@ export class MenuService {
             },
             strings.notices.failedToCopyImage
         );
+    }
+
+    /**
+     * Adds resize percentage options to the context menu.
+     * Each option will resize the image to the specified percentage of its original size.
+     * @param menu - The context menu to add items to
+     * @param ev - The original mouse event
+     */
+    async addResizeMenuItems(menu: Menu, ev: MouseEvent | TouchEvent): Promise<void> {
+        const img = findImageElement(ev.target);
+        if (!img) return;
+
+        // Add copy to clipboard option first
+        this.addCopyImageMenuItem(menu, img);
 
         // Add copy local path option
         this.addMenuItem(
