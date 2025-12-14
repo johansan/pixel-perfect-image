@@ -38,3 +38,54 @@ export function errorLog(...args: unknown[]) {
 	const timestamp = new Date().toTimeString().split(' ')[0];
 	console.error(`${timestamp}`, ...args);
 }
+
+export function safeDecodeURIComponent(value: string): string {
+	try {
+		return decodeURIComponent(value);
+	} catch {
+		return value;
+	}
+}
+
+export function createUserVisibleError(message: string): Error {
+	const error = new Error(message);
+	error.name = 'UserVisibleError';
+	return error;
+}
+
+export function isUserVisibleError(error: unknown): error is Error {
+	return error instanceof Error && error.name === 'UserVisibleError';
+}
+
+export function parseObsidianImageSizeParam(value: string): { width: number; height?: number } | null {
+	const trimmed = value.trim();
+	if (!trimmed) return null;
+
+	// Common Obsidian embed size formats:
+	// - "300"
+	// - "300x200"
+	// - "300px" (seen in some user configs/plugins)
+	const sizeMatch = trimmed.match(/^([1-9]\d*)(?:x([1-9]\d*))?(?:px)?$/i);
+	if (!sizeMatch) return null;
+
+	const width = Number.parseInt(sizeMatch[1], 10);
+	if (!Number.isFinite(width) || width <= 0) return null;
+
+	const heightRaw = sizeMatch[2];
+	if (!heightRaw) return { width };
+
+	const height = Number.parseInt(heightRaw, 10);
+	if (!Number.isFinite(height) || height <= 0) return { width };
+
+	return { width, height };
+}
+
+export function findLastObsidianImageSizeParam(
+	values: string[]
+): { index: number; width: number; height?: number } | null {
+	for (let index = values.length - 1; index >= 0; index -= 1) {
+		const parsed = parseObsidianImageSizeParam(values[index]);
+		if (parsed) return { index, ...parsed };
+	}
+	return null;
+}

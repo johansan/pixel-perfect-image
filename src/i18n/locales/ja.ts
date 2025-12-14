@@ -34,6 +34,8 @@ export const STRINGS_JA = {
         
         // Error messages
         couldNotReadDimensions: '画像の寸法を読み取れませんでした',
+        couldNotDetermineSvgDimensions: 'SVGの寸法を特定できませんでした（width/height/viewBoxがありません）',
+        couldNotDetermineImageDimensions: '画像の寸法を特定できませんでした',
         cannotCopyPath: 'パスをコピーできません - ファイルシステムアダプターを使用していません',
         couldNotLocateImage: '画像ファイルが見つかりませんでした',
         setEditorPath: 'Pixel Perfect Image設定で{editor}のパスを設定してください。',

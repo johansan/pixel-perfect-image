@@ -1,8 +1,8 @@
-import { TFile, MarkdownView } from 'obsidian';
+import { TFile } from 'obsidian';
 import type PixelPerfectImage from '../main';
-import { WIKILINK_IMAGE_REGEX, MARKDOWN_IMAGE_REGEX } from '../utils/constants';
+import { WIKILINK_IMAGE_REGEX } from '../utils/constants';
 import { ImageLink } from '../utils/types';
-import { errorLog } from '../utils/utils';
+import { errorLog, findLastObsidianImageSizeParam, safeDecodeURIComponent } from '../utils/utils';
 
 /**
  * Service for handling image link parsing and manipulation
@@ -12,6 +12,159 @@ export class LinkService {
     
     constructor(plugin: PixelPerfectImage) {
         this.plugin = plugin;
+    }
+
+    private scanMarkdownImageLinks(
+        text: string,
+        onMatch: (match: { start: number; end: number; fullMatch: string; description: string; linkPath: string; titleSuffix: string }) => void
+    ) {
+        let index = 0;
+        const length = text.length;
+
+        while (index < length) {
+            const start = text.indexOf('![', index);
+            if (start === -1) break;
+
+            // Parse alt text: ![ ... ](...)
+            let cursor = start + 2;
+            let altEnd = -1;
+            while (cursor < length) {
+                const char = text[cursor];
+                if (char === '\\') {
+                    cursor += 2;
+                    continue;
+                }
+                if (char === ']') {
+                    altEnd = cursor;
+                    break;
+                }
+                cursor += 1;
+            }
+
+            if (altEnd === -1 || text[altEnd + 1] !== '(') {
+                // Not a well-formed image link; continue scanning.
+                index = start + 1;
+                continue;
+            }
+
+            const description = text.substring(start + 2, altEnd);
+
+            // Parse link destination with balanced parentheses.
+            const destStartParen = altEnd + 1;
+            let depth = 0;
+            let destEndParen = -1;
+            cursor = destStartParen;
+
+            while (cursor < length) {
+                const char = text[cursor];
+                if (char === '\\') {
+                    cursor += 2;
+                    continue;
+                }
+                if (char === '(') depth += 1;
+                if (char === ')') {
+                    depth -= 1;
+                    if (depth === 0) {
+                        destEndParen = cursor;
+                        break;
+                    }
+                }
+                cursor += 1;
+            }
+
+            if (destEndParen === -1) break;
+
+            const rawDestination = text.substring(destStartParen + 1, destEndParen);
+            const { url, titleSuffix } = this.splitMarkdownLinkDestination(rawDestination);
+            const fullMatch = text.substring(start, destEndParen + 1);
+
+            onMatch({
+                start,
+                end: destEndParen + 1,
+                fullMatch,
+                description,
+                linkPath: url,
+                titleSuffix
+            });
+
+            index = destEndParen + 1;
+        }
+    }
+
+    private splitMarkdownLinkDestination(destination: string): { url: string; titleSuffix: string } {
+        const raw = destination;
+        let cursor = 0;
+
+        while (cursor < raw.length && /\s/.test(raw[cursor])) cursor += 1;
+
+        if (cursor >= raw.length) return { url: '', titleSuffix: '' };
+
+        // Angle-bracketed destination: <url> "title"
+        if (raw[cursor] === '<') {
+            let end = cursor + 1;
+            while (end < raw.length) {
+                const char = raw[end];
+                if (char === '\\') {
+                    end += 2;
+                    continue;
+                }
+                if (char === '>') break;
+                end += 1;
+            }
+
+            if (end < raw.length && raw[end] === '>') {
+                const url = raw.substring(cursor + 1, end).trim();
+                const titleSuffix = raw.substring(end + 1);
+                return { url, titleSuffix };
+            }
+        }
+
+        // Plain destination: url "title"
+        const urlStart = cursor;
+        while (cursor < raw.length) {
+            const char = raw[cursor];
+            if (char === '\\') {
+                cursor += 2;
+                continue;
+            }
+            if (/\s/.test(char)) break;
+            cursor += 1;
+        }
+
+        const url = raw.substring(urlStart, cursor).trim();
+        const titleSuffix = raw.substring(cursor);
+        return { url, titleSuffix };
+    }
+
+    private encodeMarkdownPathSegment(value: string): string {
+        return encodeURIComponent(value).replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+    }
+
+    private replaceMarkdownImageLinks(
+        text: string,
+        replacer: (fullMatch: string, description: string, linkPath: string, titleSuffix: string) => string
+    ): string {
+        let result = '';
+        let lastIndex = 0;
+
+        this.scanMarkdownImageLinks(text, ({ start, end, fullMatch, description, linkPath, titleSuffix }) => {
+            result += text.substring(lastIndex, start);
+            result += replacer(fullMatch, description, linkPath, titleSuffix);
+            lastIndex = end;
+        });
+
+        result += text.substring(lastIndex);
+        return result;
+    }
+
+    private splitFrontmatter(data: string): { frontmatter: string; content: string } {
+        // Simple YAML frontmatter handling:
+        // - Only treat it as frontmatter if the file starts with `---` and we can find a closing `---`.
+        // - If the closing delimiter is missing, treat as no frontmatter.
+        const match = data.match(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/);
+        if (!match) return { frontmatter: "", content: data };
+        const frontmatter = match[0];
+        return { frontmatter, content: data.substring(frontmatter.length) };
     }
 
     /**
@@ -52,7 +205,7 @@ export class LinkService {
         });
 
         // Handle markdown-style links (![alt|100](image.png))
-        return text.replace(MARKDOWN_IMAGE_REGEX, (match, description, linkPath) => {
+        return this.replaceMarkdownImageLinks(text, (match, description, linkPath, titleSuffix) => {
             // Parse the link components from both parts
             const link = this.parseLinkComponents(description, linkPath);
             
@@ -62,14 +215,16 @@ export class LinkService {
             }
 
             // Get the base description without parameters
-            const desc = description.split("|")[0].trim() || imageFile.basename;
+            const baseDesc = description.split("|")[0].trim();
+            const desc = baseDesc || imageFile.basename;
             // Transform the parameters
             link.params = transform(link.params);
             // Combine description with new parameters
             const newDescription = link.params.length > 0 ? [desc, ...link.params].join("|") : desc;
             // For markdown links, we put parameters in the description and keep the URL clean
             // Pass true to encode spaces in the path
-            return `![${newDescription}](${this.buildLinkPath({...link, params: []}, true)})`;
+            const newDestination = `${this.buildLinkPath({ ...link, params: [] }, true)}${titleSuffix}`;
+            return `![${newDescription}](${newDestination})`;
         });
     }
 
@@ -94,40 +249,41 @@ export class LinkService {
      *   - isWikiStyle: Whether this is a wiki-style (![[...]]) or markdown-style link
      */
     parseLinkComponents(mainPart: string, linkPath?: string): ImageLink {
-        // For markdown links, pathToParse is the URL in parentheses
-        // For wiki links, pathToParse is the entire link content
-        let pathToParse = linkPath ?? mainPart;
-        
-        // Decode URL-encoded paths (e.g., %20 -> space) for markdown links
-        // This is necessary because markdown links often have URL-encoded paths
         if (linkPath) {
-            try {
-                pathToParse = decodeURIComponent(pathToParse);
-            } catch {
-                // If decoding fails, use the original path
+            // Markdown-style: parameters come from the description (alt text), and hash comes from the URL.
+            // Important: split hash before decoding so "%23" stays a literal "#" in filenames.
+            const [rawPathWithoutHash, rawHash] = linkPath.split('#', 2);
+            const hash = rawHash ? `#${rawHash}` : "";
+            const path = safeDecodeURIComponent(rawPathWithoutHash);
+            const [, ...params] = mainPart.split("|");
+
+            return { path, hash, params, isWikiStyle: false };
+        }
+
+        // Wiki-style: parameters come from the piped segments; hash can appear either in the first segment
+        // ("file#heading|100") or (less commonly) at the end of the last parameter ("file|100#heading").
+        const [pathAndMaybeHash, ...rawParams] = mainPart.split("|");
+        let path = pathAndMaybeHash;
+        let hash = "";
+        const hashIndex = pathAndMaybeHash.indexOf('#');
+        if (hashIndex >= 0) {
+            path = pathAndMaybeHash.substring(0, hashIndex);
+            hash = pathAndMaybeHash.substring(hashIndex);
+        } else if (rawParams.length > 0) {
+            const lastParam = rawParams[rawParams.length - 1];
+            const lastHashIndex = lastParam.indexOf('#');
+            if (lastHashIndex >= 0) {
+                const paramPrefix = lastParam.substring(0, lastHashIndex);
+                const hashSuffix = lastParam.substring(lastHashIndex);
+                // Only treat it as a heading reference if the part before the hash looks like a size parameter.
+                if (/^[1-9]\d*(?:x[1-9]\d*)?(?:px)?$/i.test(paramPrefix)) {
+                    rawParams[rawParams.length - 1] = paramPrefix;
+                    hash = hashSuffix;
+                }
             }
         }
 
-        // Split off any heading reference (#) from the path
-        // e.g., "image.png#heading" → ["image.png", "heading"]
-        const [pathWithoutHash, hashPart] = pathToParse.split("#", 2);
-        const hash = hashPart ? `#${hashPart}` : "";
-
-        // For markdown links: split the alt text to get parameters
-        // For wiki links: split the path to get parameters
-        // e.g., "alt|100" → ["alt", "100"]
-        // e.g., "image.png|100" → ["image.png", "100"]
-        const [path, ...params] = (linkPath ? mainPart : pathWithoutHash).split("|");
-        
-        // Decode the final path for markdown links
-        const finalPath = linkPath ? pathWithoutHash : path;
-        
-        return {
-            path: finalPath,         // Decoded path for proper file resolution
-            hash,                    // Any heading reference (#) found
-            params,                  // Array of parameters (e.g., width)
-            isWikiStyle: !linkPath   // If linkPath is undefined, it's a wiki-style link
-        };
+        return { path, hash, params: rawParams, isWikiStyle: true };
     }
 
     /**
@@ -159,7 +315,7 @@ export class LinkService {
             // We need to encode the path but preserve the directory separators
             // This handles spaces, parentheses, brackets, and other special characters
             // e.g., "Images & Files/my image (1).png" → "Images%20%26%20Files/my%20image%20(1).png"
-            finalPath = link.path.split('/').map(segment => encodeURIComponent(segment)).join('/');
+            finalPath = link.path.split('/').map((segment) => this.encodeMarkdownPathSegment(segment)).join('/');
         }
 
         // Combine path + parameters + hash
@@ -173,55 +329,31 @@ export class LinkService {
      * @param transform - Function that transforms the parameters of the image link
      * @returns Promise<boolean> - True if any changes were made, false otherwise
      */
-    async updateImageLinks(imageFile: TFile, transform: (params: string[]) => string[]): Promise<boolean> {
-        const activeFile = this.plugin.app.workspace.getActiveFile();
-        if (!activeFile) {
-            throw new Error('No active file, cannot update link.');
-        }
+    async updateImageLinks(activeFile: TFile, imageFile: TFile, transform: (params: string[]) => string[]): Promise<boolean> {
 
         if (activeFile.path === imageFile.path) {
             return false;
         }
 
-        const markdownView = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
-        if (!markdownView) {
-            throw new Error('No active MarkdownView to update.');
+        let didChange = false;
+
+        try {
+            await this.plugin.app.vault.process(activeFile, (data) => {
+                // Extract frontmatter and content from the latest file contents to avoid overwriting concurrent edits.
+                const { frontmatter, content } = this.splitFrontmatter(data);
+
+                const replacedText = this.updateLinks(content, activeFile, imageFile, transform);
+                if (replacedText === content) return data;
+
+                didChange = true;
+                return frontmatter ? `${frontmatter}${replacedText}` : replacedText;
+            });
+        } catch (error) {
+            errorLog('Failed to update file content:', error);
+            throw new Error('Failed to update image link');
         }
 
-        const docText = await this.plugin.app.vault.read(activeFile);
-        
-        // Extract frontmatter and content
-        let contentWithoutFrontmatter = docText;
-        let frontmatterEndIndex = -1;
-        
-        if (docText.startsWith('---\n')) {
-            frontmatterEndIndex = docText.indexOf('\n---\n', 4);
-            if (frontmatterEndIndex !== -1) {
-                frontmatterEndIndex += 5; // Include the closing delimiter
-                contentWithoutFrontmatter = docText.substring(frontmatterEndIndex);
-            }
-        }
-        
-        // Handle both link types in one pass
-        const replacedText = this.updateLinks(contentWithoutFrontmatter, activeFile, imageFile, transform);
-
-        // Only update if content part changed
-        if (replacedText !== contentWithoutFrontmatter) {
-            try {
-                // Update the file content using vault.process
-                await this.plugin.app.vault.process(activeFile, (data) => {
-                    return frontmatterEndIndex !== -1
-                        ? data.substring(0, frontmatterEndIndex) + replacedText
-                        : replacedText;
-                });
-                return true;
-            } catch (error) {
-                errorLog('Failed to update file content:', error);
-                throw new Error('Failed to update image link');
-            }
-        }
-
-        return false;
+        return didChange;
     }
 
     /**
@@ -236,6 +368,31 @@ export class LinkService {
         if (!resolvedFile) return null;
         if (imageFile && resolvedFile.path !== imageFile.path) return null;
         return resolvedFile;
+    }
+
+    /**
+     * Finds the current width override for an image file from the given markdown text.
+     * Uses the same robust markdown scanning logic as link updates.
+     */
+    findCurrentImageWidthInText(activeFile: TFile, imageFile: TFile, text: string): number | null {
+        for (const match of text.matchAll(WIKILINK_IMAGE_REGEX)) {
+            const [, linkInner] = match;
+            const link = this.parseLinkComponents(linkInner);
+            if (!this.resolveLink(link.path, activeFile, imageFile)) continue;
+            const sizeParam = findLastObsidianImageSizeParam(link.params);
+            if (sizeParam) return sizeParam.width;
+        }
+
+        let foundWidth: number | null = null;
+        this.scanMarkdownImageLinks(text, ({ description, linkPath }) => {
+            if (foundWidth !== null) return;
+            const link = this.parseLinkComponents(description, linkPath);
+            if (!this.resolveLink(link.path, activeFile, imageFile)) return;
+            const sizeParam = findLastObsidianImageSizeParam(link.params);
+            if (sizeParam) foundWidth = sizeParam.width;
+        });
+
+        return foundWidth;
     }
 
     /**
@@ -254,64 +411,38 @@ export class LinkService {
             return false;
         }
 
-        const docText = await this.plugin.app.vault.read(activeFile);
-        
-        // Extract frontmatter and content
-        let contentWithoutFrontmatter = docText;
-        let frontmatterEndIndex = -1;
-        
-        if (docText.startsWith('---\n')) {
-            frontmatterEndIndex = docText.indexOf('\n---\n', 4);
-            if (frontmatterEndIndex !== -1) {
-                frontmatterEndIndex += 5; // Include the closing delimiter
-                contentWithoutFrontmatter = docText.substring(frontmatterEndIndex);
-            }
-        }
-        
-        let replacedText = contentWithoutFrontmatter;
-        
-        // Remove wiki-style links (![[image.png|100]])
-        replacedText = replacedText.replace(WIKILINK_IMAGE_REGEX, (match, linkInner) => {
-            // Parse the link components
-            const link = this.parseLinkComponents(linkInner);
-            
-            // If this link points to our target image, remove it
-            if (this.resolveLink(link.path, activeFile, imageFile)) {
-                return '';  // Remove the entire link
-            }
-            
-            return match;  // Keep non-matching links
-        });
+        let didChange = false;
 
-        // Remove markdown-style links (![alt|100](image.png))
-        replacedText = replacedText.replace(MARKDOWN_IMAGE_REGEX, (match, description, linkPath) => {
-            // Parse the link components
-            const link = this.parseLinkComponents(description, linkPath);
-            
-            // If this link points to our target image, remove it
-            if (this.resolveLink(link.path, activeFile, imageFile)) {
-                return '';  // Remove the entire link
-            }
-            
-            return match;  // Keep non-matching links
-        });
+        try {
+            // Do all parsing and replacement inside vault.process() to avoid overwriting concurrent edits.
+            await this.plugin.app.vault.process(activeFile, (data) => {
+                // Extract frontmatter and content from the latest file contents.
+                const { frontmatter, content } = this.splitFrontmatter(data);
 
-        // Only update if content changed
-        if (replacedText !== contentWithoutFrontmatter) {
-            try {
-                // Update the file content
-                await this.plugin.app.vault.process(activeFile, (data) => {
-                    return frontmatterEndIndex !== -1
-                        ? data.substring(0, frontmatterEndIndex) + replacedText
-                        : replacedText;
+                let replacedText = content;
+
+                // Remove wiki-style links (![[image.png|100]])
+                replacedText = replacedText.replace(WIKILINK_IMAGE_REGEX, (match, linkInner) => {
+                    const link = this.parseLinkComponents(linkInner);
+                    return this.resolveLink(link.path, activeFile, imageFile) ? '' : match;
                 });
-                return true;
-            } catch (error) {
-                errorLog('Failed to remove image links:', error);
-                throw new Error('Failed to remove image links');
-            }
+
+                // Remove markdown-style links (![alt|100](image.png))
+                replacedText = this.replaceMarkdownImageLinks(replacedText, (match, description, linkPath, _titleSuffix) => {
+                    const link = this.parseLinkComponents(description, linkPath);
+                    return this.resolveLink(link.path, activeFile, imageFile) ? '' : match;
+                });
+
+                if (replacedText === content) return data;
+
+                didChange = true;
+                return frontmatter ? `${frontmatter}${replacedText}` : replacedText;
+            });
+        } catch (error) {
+            errorLog('Failed to remove image links:', error);
+            throw new Error('Failed to remove image links');
         }
 
-        return false;
+        return didChange;
     }
 }

@@ -69,6 +69,30 @@ export const DEFAULT_SETTINGS: PixelPerfectImageSettings = {
 	debugMode: false,
 };
 
+export type ResizeSizeUnit = 'px' | '%';
+
+export function parseResizeSize(value: string): { amount: number; unit: ResizeSizeUnit } | null {
+	const match = value.trim().match(/^([1-9]\d*)(px|%)$/i);
+	if (!match) return null;
+	return { amount: Number.parseInt(match[1], 10), unit: match[2].toLowerCase() as ResizeSizeUnit };
+}
+
+export function sanitizeResizeSizes(values: string[]): string[] {
+	const seen = new Set<string>();
+	const result: string[] = [];
+
+	for (const value of values) {
+		const normalized = value.trim().toLowerCase();
+		if (!normalized) continue;
+		if (!parseResizeSize(normalized)) continue;
+		if (seen.has(normalized)) continue;
+		seen.add(normalized);
+		result.push(normalized);
+	}
+
+	return result;
+}
+
 // Add helper function to get the correct path based on platform
 export function getExternalEditorPath(settings: PixelPerfectImageSettings): string {
 	if (Platform.isMacOS) return settings.externalEditorPathMac;
@@ -200,14 +224,8 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.customResizeSizes.join(', '))
 					.onChange(async (value) => {
 						// Parse comma-separated values, keeping units
-						const sizes = value.split(',')
-							.map(s => s.trim())
-							.filter(s => {
-								// Validate format: number followed by % or px
-								const match = s.match(/^(\d+)(px|%)$/);
-								return match && parseInt(match[1]) > 0;
-							});
-						
+						const sizes = sanitizeResizeSizes(value.split(','));
+
 						this.plugin.settings.customResizeSizes = sizes;
 						await this.plugin.saveSettings();
 					});

@@ -34,6 +34,8 @@ export const STRINGS_DE = {
         
         // Error messages
         couldNotReadDimensions: 'Bildabmessungen konnten nicht gelesen werden',
+        couldNotDetermineSvgDimensions: 'SVG-Abmessungen konnten nicht bestimmt werden (width/height/viewBox fehlen)',
+        couldNotDetermineImageDimensions: 'Bildabmessungen konnten nicht bestimmt werden',
         cannotCopyPath: 'Pfad kann nicht kopiert werden - kein Dateisystem-Adapter',
         couldNotLocateImage: 'Bilddatei konnte nicht gefunden werden',
         setEditorPath: 'Bitte legen Sie den {editor}-Pfad in den Pixel Perfect Image Einstellungen fest.',

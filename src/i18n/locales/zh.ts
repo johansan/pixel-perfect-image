@@ -34,6 +34,8 @@ export const STRINGS_ZH = {
         
         // Error messages
         couldNotReadDimensions: '无法读取图像尺寸',
+        couldNotDetermineSvgDimensions: '无法确定 SVG 尺寸（缺少 width/height/viewBox）',
+        couldNotDetermineImageDimensions: '无法确定图像尺寸',
         cannotCopyPath: '无法复制路径 - 未使用文件系统适配器',
         couldNotLocateImage: '无法找到图像文件',
         setEditorPath: '请在Pixel Perfect Image设置中设置您的{editor}路径。',

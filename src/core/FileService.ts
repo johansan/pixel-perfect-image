@@ -3,7 +3,7 @@ import type PixelPerfectImage from '../main';
 import { join } from 'path';
 import { spawn } from "child_process";
 import { FileNameInputModal, DeleteConfirmationModal } from '../ui/modals';
-import { errorLog } from '../utils/utils';
+import { errorLog, safeDecodeURIComponent } from '../utils/utils';
 import { getExternalEditorPath } from '../ui/settings';
 import { strings } from '../i18n';
 
@@ -48,37 +48,54 @@ export class FileService {
     }
 
     /**
-     * Extracts a filename from an image's src attribute.
+     * Extracts a vault-relative path (or filename) from an image's src attribute.
      * Used as fallback when alt text is not available.
      * @param src - The src attribute value
-     * @returns The extracted filename or null if not found
+     * @returns The extracted vault-relative path/filename or null if not found
      */
     parseFileNameFromSrc(src: string): string | null {
+        const trimmed = src.trim();
+        if (!trimmed) return null;
+
+        // Strip query/hash first so we don't treat them as part of the file path.
+        const [withoutQueryOrHash] = trimmed.split(/[?#]/, 1);
+        if (!withoutQueryOrHash) return null;
+
+        // Obsidian often encodes the vault-relative path (including folder separators) into the last URL segment.
+        // Example: ".../Images%2Fmy%20image.png" -> "Images/my image.png"
         try {
-            // Handle both URL-encoded and regular paths
-            const decodedSrc = decodeURIComponent(src);
-            
-            // Split off any query params (?xyz=...)
-            const [pathWithoutQuery] = decodedSrc.split("?");
-            const slashIdx = pathWithoutQuery.lastIndexOf("/");
-            if (slashIdx < 0 || slashIdx >= pathWithoutQuery.length - 1) {
-                return null;
+            const url = new URL(withoutQueryOrHash);
+            const lastSegment = url.pathname.split('/').filter(Boolean).pop();
+            if (!lastSegment) return null;
+            return safeDecodeURIComponent(lastSegment);
+        } catch {
+            // If it's not a URL, it might already be a vault-relative path like "Images/my image.png".
+            const decoded = safeDecodeURIComponent(withoutQueryOrHash);
+
+            const looksAbsolute =
+                decoded.startsWith('/') ||
+                /^[a-zA-Z]:[\\/]/.test(decoded);
+
+            if (!looksAbsolute && decoded.includes('/')) {
+                return decoded;
             }
 
-            // Extract just the trailing filename portion
-            return pathWithoutQuery.substring(slashIdx + 1);
-        } catch {
-            // Handle malformed URLs gracefully
-            return null;
+            const slashIdx = decoded.lastIndexOf('/');
+            const fileName = slashIdx >= 0 ? decoded.substring(slashIdx + 1) : decoded;
+            return fileName || null;
         }
     }
 
     /**
      * Helper to safely get the image file with common error handling
      * @param img - The HTML image element
+     * @param showNotice - Whether to show a notice if the image file cannot be found
      * @returns Object containing the active file and image file, or null if either cannot be found
      */
-    async getImageFileWithErrorHandling(img: HTMLImageElement): Promise<{ activeFile: TFile; imgFile: TFile } | null> {
+    async getImageFileWithErrorHandling(
+        img: HTMLImageElement,
+        showNotice = true
+    ): Promise<{ activeFile: TFile; imgFile: TFile } | null> {
         const activeFile = this.plugin.app.workspace.getActiveFile();
         if (!activeFile) {
             return null;
@@ -88,7 +105,7 @@ export class FileService {
         if (!imgFile) {
             // Only show notification if we have a valid image element but can't find its file
             // This prevents errors when plugin is triggered on non-image elements
-            if (img.naturalWidth > 0 || img.src) {
+            if (showNotice && (img.naturalWidth > 0 || img.src)) {
                 new Notice(strings.notices.couldNotLocateImage);
             }
             return null;

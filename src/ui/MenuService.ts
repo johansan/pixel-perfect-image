@@ -1,7 +1,7 @@
-import { FileSystemAdapter, Menu, Notice, Platform, normalizePath, MarkdownView } from 'obsidian';
+import { FileSystemAdapter, Menu, Notice, Platform, normalizePath, MarkdownView, TFile } from 'obsidian';
 import type PixelPerfectImage from '../main';
-import { findImageElement, errorLog, isRemoteImage } from '../utils/utils';
-import { getExternalEditorPath } from './settings';
+import { findImageElement, errorLog, isRemoteImage, isUserVisibleError } from '../utils/utils';
+import { getExternalEditorPath, parseResizeSize } from './settings';
 import { join } from 'path';
 import { strings } from '../i18n';
 
@@ -15,6 +15,40 @@ export class MenuService {
         this.plugin = plugin;
     }
 
+    private getRasterNaturalDimensions(img: HTMLImageElement): { width: number; height: number } | null {
+        const width = img.naturalWidth;
+        const height = img.naturalHeight;
+        if (width > 0 && height > 0) return { width, height };
+        return null;
+    }
+
+    private isSvgUrl(url: string): boolean {
+        const normalized = url.trim().toLowerCase();
+        if (!normalized) return false;
+
+        if (normalized.startsWith('data:image/svg+xml')) return true;
+        if (normalized.includes('image/svg+xml')) return true;
+
+        try {
+            const parsedUrl = new URL(url);
+            return parsedUrl.pathname.toLowerCase().endsWith('.svg');
+        } catch {
+            // URL can be relative or otherwise non-parseable; fall back to string check.
+            const withoutQueryOrHash = normalized.split(/[?#]/, 1)[0];
+            return withoutQueryOrHash.endsWith('.svg');
+        }
+    }
+
+    private isSvgBySrc(img: HTMLImageElement): boolean {
+        const sources = [
+            img.getAttribute('src') ?? '',
+            img.currentSrc ?? '',
+            img.src ?? ''
+        ];
+
+        return sources.some((source) => this.isSvgUrl(source));
+    }
+
     /**
      * Registers a context menu handler for images in the editor.
      * The menu provides options to view image dimensions and resize the image.
@@ -24,7 +58,7 @@ export class MenuService {
         this.plugin.registerDomEvent(document, 'contextmenu', this.handleContextMenu.bind(this), true);
         
         // Add mobile long-press support
-        let longPressTimer: NodeJS.Timeout;
+        let longPressTimer: ReturnType<typeof setTimeout> | null = null;
         
         this.plugin.registerDomEvent(document, 'touchstart', (ev: TouchEvent) => {
             // Ignore multi-touch events to avoid interfering with pinch zooming
@@ -39,11 +73,13 @@ export class MenuService {
         }, true);
         
         this.plugin.registerDomEvent(document, 'touchend', () => {
-            clearTimeout(longPressTimer);
+            if (longPressTimer) clearTimeout(longPressTimer);
+            longPressTimer = null;
         }, true);
         
         this.plugin.registerDomEvent(document, 'touchmove', () => {
-            clearTimeout(longPressTimer);
+            if (longPressTimer) clearTimeout(longPressTimer);
+            longPressTimer = null;
         }, true);
     }
 
@@ -69,7 +105,9 @@ export class MenuService {
         if (isRemote) {
             // For remote images, show indicator and limited options
             this.addInfoMenuItem(menu, strings.menu.remoteImage, 'globe');
-            this.addCopyImageMenuItem(menu, img);
+            if (!this.isSvgBySrc(img)) {
+                this.addCopyImageMenuItem(menu, img);
+            }
 
             // Copy URL option for remote images
             this.addMenuItem(
@@ -83,14 +121,18 @@ export class MenuService {
                 strings.notices.failedToCopyUrl
             );
         } else {
+            const resolvedImage = await this.plugin.fileService.getImageFileWithErrorHandling(img);
+            const currentWidth = resolvedImage
+                ? this.plugin.imageService.getCurrentImageWidth(resolvedImage.activeFile, resolvedImage.imgFile)
+                : null;
             // For local images, show all normal options
-            await this.addDimensionsMenuItem(menu, img);
-            await this.addResizeMenuItems(menu, ev);
+            await this.addDimensionsMenuItem(menu, img, resolvedImage, currentWidth);
+            await this.addResizeMenuItems(menu, img, resolvedImage, currentWidth);
             
             // Only add file operations on desktop
             if (!Platform.isMobile) {
                 menu.addSeparator();
-                this.addFileOperationMenuItems(menu, img);
+                this.addFileOperationMenuItems(menu, resolvedImage?.imgFile ?? null);
             }
         }
 
@@ -122,18 +164,36 @@ export class MenuService {
      * @param menu - The context menu to add the item to
      * @param img - The HTML image element that was right-clicked
      */
-    async addDimensionsMenuItem(menu: Menu, img: HTMLImageElement): Promise<void> {
+    async addDimensionsMenuItem(
+        menu: Menu,
+        img: HTMLImageElement,
+        resolvedImage?: { activeFile: TFile; imgFile: TFile } | null,
+        currentWidth?: number | null
+    ): Promise<void> {
         // Only add file info if the setting is enabled
         if (!this.plugin.settings.showFileInfo) return;
 
         try {
-            const result = await this.plugin.fileService.getImageFileWithErrorHandling(img);
+            const result = resolvedImage !== undefined
+                ? resolvedImage
+                : await this.plugin.fileService.getImageFileWithErrorHandling(img);
             if (!result) return;
 
-            const { width, height } = await this.plugin.imageService.readImageDimensions(result.imgFile);
+            const isSvg = result.imgFile.extension.toLowerCase() === 'svg' || this.isSvgBySrc(img);
+            let width: number;
+            let height: number;
+            const rasterDimensions = !isSvg ? this.getRasterNaturalDimensions(img) : null;
+            if (rasterDimensions) {
+                ({ width, height } = rasterDimensions);
+            } else {
+                ({ width, height } = await this.plugin.imageService.readImageDimensions(result.imgFile));
+            }
 
             // Get current scale if set
-            const currentScale = this.plugin.imageService.calculateImageScale(result.activeFile, result.imgFile, width);
+            const widthOverride = currentWidth !== undefined
+                ? currentWidth
+                : this.plugin.imageService.getCurrentImageWidth(result.activeFile, result.imgFile);
+            const currentScale = widthOverride !== null ? Math.round((widthOverride / width) * 100) : null;
             const scaleText = currentScale !== null ? ` @ ${currentScale}%` : '';
 
             // Add filename menu item with scale
@@ -143,7 +203,8 @@ export class MenuService {
             this.addInfoMenuItem(menu, `${width} × ${height} px`, "info");
         } catch (error) {
             errorLog('Could not read dimensions:', error);
-            new Notice(strings.notices.couldNotReadDimensions);
+            const message = isUserVisibleError(error) ? error.message : strings.notices.couldNotReadDimensions;
+            new Notice(message);
         }
     }
 
@@ -159,8 +220,7 @@ export class MenuService {
                 await action();
             } catch (error) {
                 errorLog(errorMessage, error);
-                // Use the actual error message if available, otherwise fall back to the generic message
-                const displayMessage = error instanceof Error ? error.message : errorMessage;
+                const displayMessage = isUserVisibleError(error) ? error.message : errorMessage;
                 new Notice(displayMessage);
             }
         };
@@ -213,14 +273,38 @@ export class MenuService {
      * Adds resize percentage options to the context menu.
      * Each option will resize the image to the specified percentage of its original size.
      * @param menu - The context menu to add items to
-     * @param ev - The original mouse event
+     * @param img - The HTML image element
      */
-    async addResizeMenuItems(menu: Menu, ev: MouseEvent | TouchEvent): Promise<void> {
-        const img = findImageElement(ev.target);
-        if (!img) return;
+    async addResizeMenuItems(
+        menu: Menu,
+        img: HTMLImageElement,
+        resolvedImage?: { activeFile: TFile; imgFile: TFile } | null,
+        currentWidth?: number | null
+    ): Promise<void> {
+        // Get current scale and file info
+        const result = resolvedImage !== undefined
+            ? resolvedImage
+            : await this.plugin.fileService.getImageFileWithErrorHandling(img);
+        let currentScale: number | null = null;
+        const customWidth = currentWidth !== undefined
+            ? currentWidth
+            : (result ? this.plugin.imageService.getCurrentImageWidth(result.activeFile, result.imgFile) : null);
+        let actualWidth: number | null = null;
+        if (!result) {
+            if (!this.isSvgBySrc(img)) {
+                this.addCopyImageMenuItem(menu, img);
+            }
+            return;
+        }
 
-        // Add copy to clipboard option first
-        this.addCopyImageMenuItem(menu, img);
+        const { imgFile } = result;
+        const isSvg = imgFile.extension.toLowerCase() === 'svg' || this.isSvgBySrc(img);
+
+        // Add copy to clipboard option first (except for SVGs)
+        if (!isSvg) {
+            this.addCopyImageMenuItem(menu, img);
+            menu.addSeparator();
+        }
 
         // Add copy local path option
         this.addMenuItem(
@@ -228,9 +312,6 @@ export class MenuService {
             strings.menu.copyLocalPath,
             'link',
             async () => {
-                const result = await this.plugin.fileService.getImageFileWithErrorHandling(img);
-                if (!result) return;
-                
                 // Get vault path from adapter
                 const adapter = this.plugin.app.vault.adapter;
                 if (!(adapter instanceof FileSystemAdapter)) {
@@ -238,7 +319,7 @@ export class MenuService {
                     return;
                 }
                 const vaultPath = adapter.getBasePath();
-                const fullPath = join(vaultPath, normalizePath(result.imgFile.path));
+                const fullPath = join(vaultPath, normalizePath(imgFile.path));
                 await navigator.clipboard.writeText(fullPath);
                 new Notice(strings.notices.filePathCopied);
             },
@@ -247,29 +328,33 @@ export class MenuService {
 
         // Add separator before resize options
         menu.addSeparator();
-
-        // Get current scale and file info
-        const result = await this.plugin.fileService.getImageFileWithErrorHandling(img);
-        let currentScale: number | null = null;
-        let currentWidth: number | null = null;
         
-        if (result) {
-            const { width } = await this.plugin.imageService.readImageDimensions(result.imgFile);
-            currentWidth = this.plugin.imageService.getCurrentImageWidth(result.activeFile, result.imgFile);
-            currentScale = currentWidth !== null ? Math.round((currentWidth / width) * 100) : null;
+        if (!isSvg) {
+            actualWidth = this.getRasterNaturalDimensions(img)?.width ?? null;
         }
+        if (actualWidth === null) {
+            try {
+                const { width } = await this.plugin.imageService.readImageDimensions(imgFile);
+                actualWidth = width;
+            } catch {
+                actualWidth = null;
+            }
+        }
+        currentScale = customWidth !== null && actualWidth !== null ? Math.round((customWidth / actualWidth) * 100) : null;
 
         // Add resize options from settings
         if (this.plugin.settings.customResizeSizes.length > 0) {
-            this.plugin.settings.customResizeSizes.forEach(sizeStr => {
-                const match = sizeStr.match(/^(\d+)(px|%)$/);
-                if (!match) return; // Skip invalid formats
-                
-                const value = parseInt(match[1]);
-                const unit = match[2];
+            this.plugin.settings.customResizeSizes.forEach((sizeStr) => {
+                const parsed = parseResizeSize(sizeStr);
+                if (!parsed) return; // Skip invalid formats
+
+                const value = parsed.amount;
+                const unit = parsed.unit;
                 const label = strings.menu.resizeTo.replace('{size}', sizeStr);
                 const isPercentage = unit === '%';
-                const disabled = isPercentage ? (currentScale === value) : (currentWidth === value);
+                const disabled = isPercentage
+                    ? (isSvg && actualWidth === null ? true : (currentScale === value))
+                    : (customWidth === value);
                 
                 // Choose icon based on unit type and value
                 let icon = 'image';
@@ -288,7 +373,7 @@ export class MenuService {
                     menu,
                     label,
                     icon,
-                    async () => await this.plugin.imageService.resizeImage(img, value, !isPercentage),
+                    () => this.plugin.imageService.resizeImage(img, value, !isPercentage),
                     strings.notices.failedToResizeTo.replace('{size}', sizeStr),
                     disabled
                 );
@@ -296,13 +381,13 @@ export class MenuService {
         }
 
         // Add option to remove custom size if one is set
-        if (result && currentScale !== null) {
+        if (customWidth !== null) {
             this.addMenuItem(
                 menu,
                 strings.menu.removeCustomSize,
                 'reset',
                 async () => {
-                    await this.plugin.imageService.removeImageWidth(result.imgFile);
+                    await this.plugin.imageService.removeImageWidth(imgFile, result.activeFile);
                     new Notice(strings.notices.customSizeRemoved);
                 },
                 strings.notices.failedToRemoveSize
@@ -313,9 +398,10 @@ export class MenuService {
     /**
      * Adds file operation menu items like Show in Finder/Explorer and Open in Default App
      */
-    addFileOperationMenuItems(menu: Menu, target: HTMLImageElement): void {
+    addFileOperationMenuItems(menu: Menu, imgFile: TFile | null): void {
         // Skip all desktop-only operations on mobile
         if (Platform.isMobile) return;
+        if (!imgFile) return;
 
         const isMac = Platform.isMacOS;
         const editorPath = getExternalEditorPath(this.plugin.settings);
@@ -331,9 +417,7 @@ export class MenuService {
                 strings.menu.openInNewTab,
                 'lucide-file-plus',
                 async () => {
-                    const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
-                    if (!result) return;
-                    await this.plugin.app.workspace.openLinkText(result.imgFile.path, '', true);
+                    await this.plugin.app.workspace.openLinkText(imgFile.path, '', true);
                 },
                 strings.notices.failedToOpenInNewTab
             );
@@ -346,10 +430,8 @@ export class MenuService {
                 strings.menu.openToTheRight,
                 'lucide-separator-vertical',
                 async () => {
-                    const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
-                    if (!result) return;
                     const leaf = this.plugin.app.workspace.getLeaf('split', 'vertical');
-                    await leaf.openFile(result.imgFile);
+                    await leaf.openFile(imgFile);
                     this.plugin.app.workspace.setActiveLeaf(leaf);
                 },
                 strings.notices.failedToOpenToTheRight
@@ -363,10 +445,8 @@ export class MenuService {
                 strings.menu.openInNewWindow,
                 'lucide-app-window',
                 async () => {
-                    const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
-                    if (!result) return;
                     const leaf = this.plugin.app.workspace.getLeaf('window');
-                    await leaf.openFile(result.imgFile);
+                    await leaf.openFile(imgFile);
                     this.plugin.app.workspace.setActiveLeaf(leaf);
                 },
                 strings.notices.failedToOpenInNewWindow
@@ -384,9 +464,7 @@ export class MenuService {
                 strings.menu.openInDefaultApp,
                 'image',
                 async () => {
-                    const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
-                    if (!result) return;
-                    await this.plugin.fileService.openInDefaultApp(result.imgFile);
+                    await this.plugin.fileService.openInDefaultApp(imgFile);
                 },
                 strings.notices.failedToOpenInDefaultApp
             );
@@ -400,9 +478,7 @@ export class MenuService {
                 strings.menu.openInEditor.replace('{editor}', editorName),
                 'edit',
                 async () => {
-                    const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
-                    if (!result) return;
-                    await this.plugin.fileService.openInExternalEditor(result.imgFile.path);
+                    await this.plugin.fileService.openInExternalEditor(imgFile.path);
                 },
                 strings.notices.failedToOpenInEditor.replace('{editor}', editorName)
             );
@@ -420,9 +496,7 @@ export class MenuService {
                 isMac ? strings.menu.showInFinder : strings.menu.showInExplorer,
                 isMac ? 'lucide-app-window-mac' : 'lucide-app-window',
                 async () => {
-                    const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
-                    if (!result) return;
-                    await this.plugin.fileService.showInSystemExplorer(result.imgFile);
+                    await this.plugin.fileService.showInSystemExplorer(imgFile);
                 },
                 strings.notices.failedToOpenExplorer
             );
@@ -435,9 +509,7 @@ export class MenuService {
                 strings.menu.renameImage,
                 'pencil',
                 async () => {
-                    const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
-                    if (!result) return;
-                    await this.plugin.fileService.renameImage(result.imgFile);
+                    await this.plugin.fileService.renameImage(imgFile);
                 },
                 strings.notices.failedToRenameImage
             );
@@ -450,9 +522,7 @@ export class MenuService {
                 strings.menu.deleteImageAndLink,
                 'lucide-trash',
                 async () => {
-                    const result = await this.plugin.fileService.getImageFileWithErrorHandling(target);
-                    if (!result) return;
-                    await this.plugin.fileService.deleteImageAndLink(result.imgFile);
+                    await this.plugin.fileService.deleteImageAndLink(imgFile);
                 },
                 strings.notices.failedToDeleteImage
             );

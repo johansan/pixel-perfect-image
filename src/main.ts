@@ -1,5 +1,5 @@
 import { Plugin } from 'obsidian';
-import { PixelPerfectImageSettings, DEFAULT_SETTINGS, PixelPerfectImageSettingTab } from './ui/settings';
+import { PixelPerfectImageSettings, DEFAULT_SETTINGS, PixelPerfectImageSettingTab, sanitizeResizeSizes } from './ui/settings';
 
 // Import service classes
 import { EventService } from './events/EventService';
@@ -46,7 +46,16 @@ export default class PixelPerfectImage extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = { ...DEFAULT_SETTINGS, ...await this.loadData()};
+		const data = await this.loadData();
+		this.settings = { ...DEFAULT_SETTINGS, ...(data ?? {}) };
+
+		const rawResizeSizes = (this.settings as unknown as { customResizeSizes?: unknown }).customResizeSizes;
+		const resizeSizes =
+			Array.isArray(rawResizeSizes) ? rawResizeSizes.filter((value): value is string => typeof value === 'string') :
+			typeof rawResizeSizes === 'string' ? rawResizeSizes.split(',') :
+			[];
+
+		this.settings.customResizeSizes = sanitizeResizeSizes(resizeSizes);
 	}
 
 	async saveSettings() {
