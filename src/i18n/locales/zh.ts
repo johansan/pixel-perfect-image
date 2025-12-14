@@ -73,6 +73,11 @@ export const STRINGS_ZH = {
         },
         
         items: {
+            whatsNew: {
+                name: 'Pixel Perfect Image {version} 的新功能',
+                desc: '查看最新的更改与改进。',
+                buttonText: '查看最近更新'
+            },
             fileInfo: {
                 name: '文件信息',
                 desc: '在菜单顶部显示文件名和尺寸'
@@ -188,6 +193,19 @@ export const STRINGS_ZH = {
             deleteButton: '删除',
             cancelButton: '取消'
         }
+    },
+
+    whatsNew: {
+        title: 'Pixel Perfect Image 的新功能',
+        categories: {
+            new: '新功能',
+            improved: '改进',
+            changed: '更改',
+            fixed: '修复'
+        },
+        supportMessage: '如果 Pixel Perfect Image 对你有帮助，请考虑支持其持续开发。',
+        supportButton: '请我喝杯咖啡',
+        thanksButton: '谢谢！'
     },
 
     // Actions (for error messages)

@@ -34,6 +34,9 @@ export interface PixelPerfectImageSettings {
 	// Advanced settings
 	confirmBeforeDelete: boolean;
 	debugMode: boolean;
+
+	// Internal state
+	lastShownVersion: string;
 }
 
 export const DEFAULT_SETTINGS: PixelPerfectImageSettings = {
@@ -67,6 +70,9 @@ export const DEFAULT_SETTINGS: PixelPerfectImageSettings = {
 	// Advanced defaults
 	confirmBeforeDelete: true,
 	debugMode: false,
+
+	// Internal state
+	lastShownVersion: '',
 };
 
 export type ResizeSizeUnit = 'px' | '%';
@@ -116,6 +122,20 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 	async display() {
 		const { containerEl } = this;
 		containerEl.empty();
+
+		const pluginVersion = this.plugin.manifest.version;
+		new Setting(containerEl)
+			.setName(strings.settings.items.whatsNew.name.replace('{version}', pluginVersion))
+			.setDesc(strings.settings.items.whatsNew.desc)
+			.addButton(button =>
+					button.setButtonText(strings.settings.items.whatsNew.buttonText).onClick(() => {
+							void (async () => {
+								const { WhatsNewModal } = await import('./WhatsNewModal');
+								const { getLatestReleaseNotes } = await import('../releaseNotes');
+								new WhatsNewModal(this.app, getLatestReleaseNotes()).open();
+							})();
+						})
+					);
 
 		// Main toggle for individual menu options
 		new Setting(containerEl)

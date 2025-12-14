@@ -52,3 +52,209 @@
 .menu-item:has(.menu-item-icon svg.lucide-trash) .menu-item-icon {
   color: var(--text-error);
 }
+
+/* ========================================================================
+   What's New Modal
+   ======================================================================== */
+
+/* What's new modal width */
+.modal.pixel-perfect-whats-new-modal {
+  width: 600px;
+  max-width: calc(100vw - 40px);
+}
+
+/* What's new content layout */
+.modal.pixel-perfect-whats-new-modal .modal-content {
+  padding: 16px;
+}
+
+.modal.pixel-perfect-whats-new-modal .modal-close-button {
+  z-index: 10;
+  pointer-events: auto;
+}
+
+/* What's new header */
+.pixel-perfect-whats-new-header {
+  margin-bottom: 16px;
+}
+
+/* What's new scrollable container */
+.pixel-perfect-whats-new-scroll {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-bottom: 0;
+  padding-right: 8px;
+  padding-bottom: 16px;
+}
+
+/* Version container */
+.pixel-perfect-whats-new-version {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* Version container - last child no border */
+.pixel-perfect-whats-new-version:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+/* Version header */
+.pixel-perfect-whats-new-version h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-normal);
+  margin: 0 0 4px 0;
+}
+
+/* Feature list */
+.pixel-perfect-whats-new-features {
+  margin-left: 16px;
+}
+
+/* Category headers */
+.pixel-perfect-whats-new-category {
+  font-weight: bold;
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
+/* Info text */
+.pixel-perfect-whats-new-info {
+  margin-bottom: 12px;
+  color: var(--text-normal);
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+/* What's new divider */
+.pixel-perfect-whats-new-divider {
+  border-top: 1px solid var(--background-modifier-border);
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+/* Version date */
+.pixel-perfect-whats-new-date {
+  color: var(--text-muted);
+  font-size: 12px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+/* Feature list */
+.pixel-perfect-whats-new-version ul {
+  list-style: disc;
+  margin: 0;
+  padding-left: 16px;
+}
+
+/* Feature list item */
+.pixel-perfect-whats-new-version li {
+  margin-bottom: 4px;
+  color: var(--text-normal);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Highlight emphasis */
+.pixel-perfect-whats-new-highlight {
+  background-color: var(--text-highlight-bg);
+  color: var(--text-normal);
+  padding: 0 2px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+/* Support container */
+.pixel-perfect-whats-new-support {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+/* Support text */
+.pixel-perfect-whats-new-support-text {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+/* Button container */
+.pixel-perfect-whats-new-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  justify-content: center;
+}
+
+/* Support button styling */
+.pixel-perfect-whats-new-support-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.pixel-perfect-whats-new-support-icon {
+  display: inline-flex;
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .modal.pixel-perfect-whats-new-modal {
+    width: calc(100vw - 40px);
+    max-width: calc(100vw - 40px);
+    margin: 0 auto;
+  }
+
+  .modal.pixel-perfect-whats-new-modal .modal-content {
+    padding: 12px;
+  }
+
+  .pixel-perfect-whats-new-scroll {
+    max-height: 300px;
+    padding-right: 4px;
+  }
+
+  .pixel-perfect-whats-new-info,
+  .pixel-perfect-whats-new-version li,
+  .pixel-perfect-whats-new-category {
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .pixel-perfect-whats-new-header {
+    font-size: 16px;
+  }
+
+  .pixel-perfect-whats-new-version h3 {
+    font-size: 15px;
+  }
+
+  .pixel-perfect-whats-new-date {
+    font-size: 14px;
+  }
+}
+
+/* Obsidian mobile app adjustments */
+.is-mobile .pixel-perfect-whats-new-header {
+  font-size: 16px;
+}
+
+.is-mobile .pixel-perfect-whats-new-info,
+.is-mobile .pixel-perfect-whats-new-version li,
+.is-mobile .pixel-perfect-whats-new-category {
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.is-mobile .pixel-perfect-whats-new-version h3 {
+  font-size: 15px;
+}
+
+.is-mobile .pixel-perfect-whats-new-date {
+  font-size: 14px;
+}

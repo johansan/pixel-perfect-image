@@ -73,6 +73,11 @@ export const STRINGS_EN = {
         },
         
         items: {
+            whatsNew: {
+                name: "What's new in Pixel Perfect Image {version}",
+                desc: 'See the latest changes and improvements.',
+                buttonText: 'View recent updates'
+            },
             fileInfo: {
                 name: 'File information',
                 desc: 'Show filename and dimensions at top of menu'
@@ -188,6 +193,19 @@ export const STRINGS_EN = {
             deleteButton: 'Delete',
             cancelButton: 'Cancel'
         }
+    },
+
+    whatsNew: {
+        title: "What's new in Pixel Perfect Image",
+        categories: {
+            new: 'New',
+            improved: 'Improved',
+            changed: 'Changed',
+            fixed: 'Fixed'
+        },
+        supportMessage: 'If Pixel Perfect Image is useful, please consider supporting its continued development.',
+        supportButton: 'Buy me a coffee',
+        thanksButton: 'Thanks!'
     },
 
     // Actions (for error messages)

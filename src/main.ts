@@ -13,6 +13,7 @@ import './utils/types';
 
 export default class PixelPerfectImage extends Plugin {
 	settings: PixelPerfectImageSettings;
+	private hasStoredData = false;
 	
 	// Services
 	eventService: EventService;
@@ -37,6 +38,8 @@ export default class PixelPerfectImage extends Plugin {
 		// Register features
 		this.menuService.registerImageContextMenu();
 		this.eventService.registerEvents();
+
+		await this.checkForVersionUpdate();
 	}
 
 	onunload() {
@@ -46,8 +49,13 @@ export default class PixelPerfectImage extends Plugin {
 	}
 
 	async loadSettings() {
-		const data = await this.loadData();
-		this.settings = { ...DEFAULT_SETTINGS, ...(data ?? {}) };
+		const data: unknown = await this.loadData();
+		this.hasStoredData = data !== null && data !== undefined;
+		const storedSettings =
+			data && typeof data === 'object' && !Array.isArray(data)
+				? (data as Partial<PixelPerfectImageSettings>)
+				: null;
+		this.settings = { ...DEFAULT_SETTINGS, ...(storedSettings ?? {}) };
 
 		const rawResizeSizes = (this.settings as unknown as { customResizeSizes?: unknown }).customResizeSizes;
 		const resizeSizes =
@@ -60,5 +68,46 @@ export default class PixelPerfectImage extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+	}
+
+	private async checkForVersionUpdate(): Promise<void> {
+		const currentVersion = this.manifest.version;
+		const lastShownVersion = this.settings.lastShownVersion;
+
+		// First install: set baseline and don't show anything
+		if (!lastShownVersion) {
+			if (!this.hasStoredData) {
+				this.settings.lastShownVersion = currentVersion;
+				await this.saveSettings();
+				return;
+			}
+		}
+
+		// Only show when version changes
+		if (lastShownVersion === currentVersion) {
+			return;
+		}
+
+		const { getReleaseNotesBetweenVersions, getLatestReleaseNotes, compareVersions, isReleaseAutoDisplayEnabled } = await import(
+			'./releaseNotes'
+		);
+
+		if (!isReleaseAutoDisplayEnabled(currentVersion)) {
+			return;
+		}
+
+		const { WhatsNewModal } = await import('./ui/WhatsNewModal');
+
+		const releaseNotes =
+			lastShownVersion && compareVersions(currentVersion, lastShownVersion) > 0
+				? getReleaseNotesBetweenVersions(lastShownVersion, currentVersion)
+				: getLatestReleaseNotes();
+
+		new WhatsNewModal(this.app, releaseNotes, () => {
+			setTimeout(() => {
+				this.settings.lastShownVersion = currentVersion;
+				void this.saveSettings();
+			}, 1000);
+		}).open();
 	}
 }

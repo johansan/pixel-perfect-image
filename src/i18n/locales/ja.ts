@@ -73,6 +73,11 @@ export const STRINGS_JA = {
         },
         
         items: {
+            whatsNew: {
+                name: 'Pixel Perfect Image {version} の新機能',
+                desc: '最新の変更点や改善点を確認できます。',
+                buttonText: '最近の更新を見る'
+            },
             fileInfo: {
                 name: 'ファイル情報',
                 desc: 'メニューの上部にファイル名とサイズを表示します'
@@ -188,6 +193,19 @@ export const STRINGS_JA = {
             deleteButton: '削除',
             cancelButton: 'キャンセル'
         }
+    },
+
+    whatsNew: {
+        title: 'Pixel Perfect Image の新機能',
+        categories: {
+            new: '新機能',
+            improved: '改善',
+            changed: '変更',
+            fixed: '修正'
+        },
+        supportMessage: 'Pixel Perfect Image が役に立ったら、開発の支援をご検討ください。',
+        supportButton: 'コーヒーをおごる',
+        thanksButton: 'ありがとう！'
     },
 
     // Actions (for error messages)
