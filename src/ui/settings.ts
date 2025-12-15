@@ -1,6 +1,8 @@
 import { App, PluginSettingTab, Setting, Platform } from 'obsidian';
 import PixelPerfectImage from '../main';
 import { strings } from '../i18n';
+import { createSettingGroupFactory } from './settingGroups';
+import { wireToggleSettingWithSubSettings } from './subSettings';
 
 
 export interface PixelPerfectImageSettings {
@@ -114,44 +116,56 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-	// Helper to show/hide elements
-	private setElementVisibility(el: HTMLElement, visible: boolean) {
-		el.style.display = visible ? 'block' : 'none';
-	}
-
 	async display() {
 		const { containerEl } = this;
 		containerEl.empty();
 
+		const createGroup = createSettingGroupFactory(containerEl);
+		const topGroup = createGroup(undefined);
+
+		const saveSettings = async (): Promise<void> => {
+			try {
+				await this.plugin.saveSettings();
+			} catch (error) {
+				console.error('Failed to save settings:', error);
+			}
+		};
+
+		const requestSaveSettings = (): void => {
+			void this.plugin.requestSaveSettings().catch(error => console.error('Failed to save settings:', error));
+		};
+
 		const pluginVersion = this.plugin.manifest.version;
-		new Setting(containerEl)
-			.setName(strings.settings.items.whatsNew.name.replace('{version}', pluginVersion))
-			.setDesc(strings.settings.items.whatsNew.desc)
-			.addButton(button =>
+		topGroup.addSetting(setting => {
+			setting
+				.setName(strings.settings.items.whatsNew.name.replace('{version}', pluginVersion))
+				.setDesc(strings.settings.items.whatsNew.desc)
+				.addButton(button =>
 					button.setButtonText(strings.settings.items.whatsNew.buttonText).onClick(() => {
-							void (async () => {
-								const { WhatsNewModal } = await import('./WhatsNewModal');
-								const { getLatestReleaseNotes } = await import('../releaseNotes');
-								new WhatsNewModal(this.app, getLatestReleaseNotes()).open();
-							})();
-						})
-					);
+						void (async () => {
+							const { WhatsNewModal } = await import('./WhatsNewModal');
+							const { getLatestReleaseNotes } = await import('../releaseNotes');
+							new WhatsNewModal(this.app, getLatestReleaseNotes()).open();
+						})();
+					})
+				);
+		});
 
 		// Main toggle for individual menu options
-		new Setting(containerEl)
-			.setName(strings.settings.headings.menuOptions)
-			.setDesc("Show settings to toggle individual menu items")
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.toggleIndividualMenuOptions)
-				.onChange(async (value) => {
-					this.plugin.settings.toggleIndividualMenuOptions = value;
-					await this.plugin.saveSettings();
-					// Update menu sub-settings visibility
-					this.setElementVisibility(menuSubSettingsEl, value);
-				}));
+		const menuOptionsSetting = topGroup.addSetting(setting => {
+			setting
+				.setName(strings.settings.headings.menuOptions)
+				.setDesc("Show settings to toggle individual menu items");
+		});
 
-		// Container for menu sub-settings
-		const menuSubSettingsEl = containerEl.createDiv('pixel-perfect-sub-settings');
+		const menuSubSettingsEl = wireToggleSettingWithSubSettings(
+			menuOptionsSetting,
+			() => this.plugin.settings.toggleIndividualMenuOptions,
+			value => {
+				this.plugin.settings.toggleIndividualMenuOptions = value;
+				void saveSettings();
+			}
+		);
 
 		new Setting(menuSubSettingsEl)
 			.setName(strings.settings.items.fileInfo.name)
@@ -161,7 +175,7 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.showFileInfo)
 					.onChange(async (value: boolean) => {
 						this.plugin.settings.showFileInfo = value;
-						await this.plugin.saveSettings();
+						void saveSettings();
 					});
 			});
 
@@ -172,7 +186,7 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.showShowInFileExplorer)
 				.onChange(async (value) => {
 					this.plugin.settings.showShowInFileExplorer = value;
-					await this.plugin.saveSettings();
+					void saveSettings();
 				}));
 
 		new Setting(menuSubSettingsEl)
@@ -182,7 +196,7 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.showRenameOption)
 				.onChange(async (value) => {
 					this.plugin.settings.showRenameOption = value;
-					await this.plugin.saveSettings();
+					void saveSettings();
 				}));
 
 		new Setting(menuSubSettingsEl)
@@ -192,7 +206,7 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.showDeleteImageOption)
 				.onChange(async (value) => {
 					this.plugin.settings.showDeleteImageOption = value;
-					await this.plugin.saveSettings();
+					void saveSettings();
 				}));
 
 		new Setting(menuSubSettingsEl)
@@ -202,7 +216,7 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.showOpenInNewTab)
 				.onChange(async (value) => {
 					this.plugin.settings.showOpenInNewTab = value;
-					await this.plugin.saveSettings();
+					void saveSettings();
 				}));
 
 		new Setting(menuSubSettingsEl)
@@ -212,7 +226,7 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.showOpenToTheRight)
 				.onChange(async (value) => {
 					this.plugin.settings.showOpenToTheRight = value;
-					await this.plugin.saveSettings();
+					void saveSettings();
 				}));
 
 		new Setting(menuSubSettingsEl)
@@ -222,7 +236,7 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.showOpenInNewWindow)
 				.onChange(async (value) => {
 					this.plugin.settings.showOpenInNewWindow = value;
-					await this.plugin.saveSettings();
+					void saveSettings();
 				}));
 
 		new Setting(menuSubSettingsEl)
@@ -232,218 +246,231 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 				.setValue(this.plugin.settings.showOpenInDefaultApp)
 				.onChange(async (value) => {
 					this.plugin.settings.showOpenInDefaultApp = value;
-					await this.plugin.saveSettings();
+					void saveSettings();
 				}));
 
-		new Setting(containerEl)
-			.setName(strings.settings.items.resizeOptions.name)
-			.setDesc(strings.settings.items.resizeOptions.desc)
-			.addText(text => {
-				text
-					.setPlaceholder(strings.settings.items.resizeOptions.placeholder)
-					.setValue(this.plugin.settings.customResizeSizes.join(', '))
-					.onChange(async (value) => {
-						// Parse comma-separated values, keeping units
-						const sizes = sanitizeResizeSizes(value.split(','));
-
-						this.plugin.settings.customResizeSizes = sizes;
-						await this.plugin.saveSettings();
-					});
-			});
-
-		const cmdKey = Platform.isMacOS ? 'CMD' : 'CTRL';
-		new Setting(containerEl)
-			.setName(strings.settings.items.cmdClickBehavior.name.replace('{cmd}', cmdKey))
-			.setDesc(strings.settings.items.cmdClickBehavior.desc.replace('{cmd}', cmdKey))
-			.addDropdown(dropdown => {
-				const editorName = this.plugin.settings.externalEditorName.trim() || 'external editor';
-				dropdown
-					.addOption('do-nothing', strings.settings.items.cmdClickBehavior.options.doNothing)
-					.addOption('open-in-new-tab', strings.settings.items.cmdClickBehavior.options.openInNewTab)
-					.addOption('open-in-default-app', strings.settings.items.cmdClickBehavior.options.openInDefaultApp)
-					.addOption('open-in-external-editor', strings.settings.items.cmdClickBehavior.options.openInEditor.replace('{editor}', editorName))
-					.setValue(this.plugin.settings.cmdCtrlClickBehavior)
-					.onChange(async (value: 'do-nothing' | 'open-in-new-tab' | 'open-in-default-app' | 'open-in-external-editor') => {
-						this.plugin.settings.cmdCtrlClickBehavior = value;
-						await this.plugin.saveSettings();
-					});
-			});
-
-	
-		// Mousewheel zoom section
-		new Setting(containerEl)
-			.setName(strings.settings.headings.mousewheelZoom)
-			.setHeading();
-
-		new Setting(containerEl)
-			.setName(strings.settings.items.enableWheelZoom.name)
-			.setDesc(strings.settings.items.enableWheelZoom.desc)
-			.addToggle(toggle => {
-				toggle
-					.setValue(this.plugin.settings.enableWheelZoom)
-					.onChange(async (value: boolean) => {
-						this.plugin.settings.enableWheelZoom = value;
-						await this.plugin.saveSettings();
-					});
-			});
-
-		new Setting(containerEl)
-			.setName(strings.settings.items.modifierKey.name)
-			.setDesc(strings.settings.items.modifierKey.desc)
-			.addDropdown(dropdown => {
-				const isMac = Platform.isMacOS;
-				dropdown
-					.addOption('Alt', isMac ? strings.settings.items.modifierKey.options.option : strings.settings.items.modifierKey.options.alt)
-					.addOption('Ctrl', strings.settings.items.modifierKey.options.ctrl)
-					.addOption('Shift', strings.settings.items.modifierKey.options.shift)
-					.setValue(this.plugin.settings.wheelModifierKey)
-					.onChange(async (value: 'Alt' | 'Ctrl' | 'Shift') => {
-						this.plugin.settings.wheelModifierKey = value;
-						await this.plugin.saveSettings();
-					});
-			});
-
-		new Setting(containerEl)
-			.setName(strings.settings.items.zoomStepSize.name)
-			.setDesc(strings.settings.items.zoomStepSize.desc)
-			.addExtraButton(button => {
-				button
-					.setIcon("reset")
-					.setTooltip(strings.settings.items.zoomStepSize.resetToDefault)
-					.onClick(async () => {
-						this.plugin.settings.wheelZoomPercentage = DEFAULT_SETTINGS.wheelZoomPercentage;
-						await this.plugin.saveSettings();
-						this.display();
-					});
-			})
-			.addSlider(slider => {
-				const valueDisplay = createSpan();
-				valueDisplay.addClass('pixel-perfect-zoom-value');
-				
-				const updateDisplay = (value: number) => {
-					valueDisplay.setText(`${value}%`);
-				};
-				
-				slider
-					.setDynamicTooltip()
-					.setLimits(1, 100, 1)  // min: 1%, max: 100%, step: 1%
-					.setValue(this.plugin.settings.wheelZoomPercentage)
-					.onChange(async (value) => {
-						updateDisplay(value);
-						this.plugin.settings.wheelZoomPercentage = value;
-						await this.plugin.saveSettings();
-					});
-				
-				updateDisplay(this.plugin.settings.wheelZoomPercentage);
-				slider.sliderEl.parentElement?.prepend(valueDisplay);
-			});
-
-		new Setting(containerEl)
-			.setName(strings.settings.items.invertScroll.name)
-			.setDesc(strings.settings.items.invertScroll.desc)
-			.addToggle(toggle => {
-				toggle
-					.setValue(this.plugin.settings.invertScrollDirection)
-					.onChange(async (value: boolean) => {
-						this.plugin.settings.invertScrollDirection = value;
-						await this.plugin.saveSettings();
-					});
-			});
-
-		new Setting(containerEl)
-			.setName(strings.settings.headings.externalEditor)
-			.setHeading();
-
-		new Setting(containerEl)
-			.setName(strings.settings.items.externalEditorName.name)
-			.setDesc(strings.settings.items.externalEditorName.desc)
-			.addText(text => {
-				text
-					.setPlaceholder(strings.settings.items.externalEditorName.placeholder)
-					.setValue(this.plugin.settings.externalEditorName)
-					.onChange(async (value) => {
-						this.plugin.settings.externalEditorName = value;
-						await this.plugin.saveSettings();
-					});
-			});
-
-		if (Platform.isMacOS) {
-			new Setting(containerEl)
-				.setName(strings.settings.items.externalEditorPathMac.name)
-				.setDesc(strings.settings.items.externalEditorPathMac.desc)
+		topGroup.addSetting(setting => {
+			setting
+				.setName(strings.settings.items.resizeOptions.name)
+				.setDesc(strings.settings.items.resizeOptions.desc)
 				.addText(text => {
 					text
-						.setPlaceholder(strings.settings.items.externalEditorPathMac.placeholder)
-						.setValue(this.plugin.settings.externalEditorPathMac)
-						.onChange(async (value) => {
-							const cleanedPath = value.replace(/\\ /g, ' ');
-							this.plugin.settings.externalEditorPathMac = cleanedPath;
-							await this.plugin.saveSettings();
+						.setPlaceholder(strings.settings.items.resizeOptions.placeholder)
+						.setValue(this.plugin.settings.customResizeSizes.join(', '))
+						.onChange(async value => {
+							const sizes = sanitizeResizeSizes(value.split(','));
+							this.plugin.settings.customResizeSizes = sizes;
+							requestSaveSettings();
 						});
 				});
+		});
+
+		const cmdKey = Platform.isMacOS ? 'CMD' : 'CTRL';
+		topGroup.addSetting(setting => {
+			setting
+				.setName(strings.settings.items.cmdClickBehavior.name.replace('{cmd}', cmdKey))
+				.setDesc(strings.settings.items.cmdClickBehavior.desc.replace('{cmd}', cmdKey))
+				.addDropdown(dropdown => {
+					const editorName = this.plugin.settings.externalEditorName.trim() || 'external editor';
+					dropdown
+						.addOption('do-nothing', strings.settings.items.cmdClickBehavior.options.doNothing)
+						.addOption('open-in-new-tab', strings.settings.items.cmdClickBehavior.options.openInNewTab)
+						.addOption('open-in-default-app', strings.settings.items.cmdClickBehavior.options.openInDefaultApp)
+						.addOption(
+							'open-in-external-editor',
+							strings.settings.items.cmdClickBehavior.options.openInEditor.replace('{editor}', editorName)
+						)
+						.setValue(this.plugin.settings.cmdCtrlClickBehavior)
+						.onChange(
+							async (value: 'do-nothing' | 'open-in-new-tab' | 'open-in-default-app' | 'open-in-external-editor') => {
+								this.plugin.settings.cmdCtrlClickBehavior = value;
+								void saveSettings();
+							}
+						);
+				});
+		});
+
+		// Mousewheel zoom section
+		const mousewheelGroup = createGroup(strings.settings.headings.mousewheelZoom);
+		mousewheelGroup.addSetting(setting => {
+			setting
+				.setName(strings.settings.items.enableWheelZoom.name)
+				.setDesc(strings.settings.items.enableWheelZoom.desc)
+				.addToggle(toggle => {
+					toggle.setValue(this.plugin.settings.enableWheelZoom).onChange(async (value: boolean) => {
+						this.plugin.settings.enableWheelZoom = value;
+						void saveSettings();
+					});
+				});
+		});
+
+		mousewheelGroup.addSetting(setting => {
+			setting
+				.setName(strings.settings.items.modifierKey.name)
+				.setDesc(strings.settings.items.modifierKey.desc)
+				.addDropdown(dropdown => {
+					const isMac = Platform.isMacOS;
+					dropdown
+						.addOption(
+							'Alt',
+							isMac ? strings.settings.items.modifierKey.options.option : strings.settings.items.modifierKey.options.alt
+						)
+						.addOption('Ctrl', strings.settings.items.modifierKey.options.ctrl)
+						.addOption('Shift', strings.settings.items.modifierKey.options.shift)
+						.setValue(this.plugin.settings.wheelModifierKey)
+						.onChange(async (value: 'Alt' | 'Ctrl' | 'Shift') => {
+							this.plugin.settings.wheelModifierKey = value;
+							void saveSettings();
+						});
+				});
+		});
+
+		mousewheelGroup.addSetting(setting => {
+			setting
+				.setName(strings.settings.items.zoomStepSize.name)
+				.setDesc(strings.settings.items.zoomStepSize.desc)
+				.addExtraButton(button => {
+					button
+						.setIcon("reset")
+						.setTooltip(strings.settings.items.zoomStepSize.resetToDefault)
+						.onClick(async () => {
+							this.plugin.settings.wheelZoomPercentage = DEFAULT_SETTINGS.wheelZoomPercentage;
+							await saveSettings();
+							this.display();
+						});
+				})
+				.addSlider(slider => {
+					const valueDisplay = createSpan();
+					valueDisplay.addClass('pixel-perfect-zoom-value');
+
+					const updateDisplay = (value: number) => {
+						valueDisplay.setText(`${value}%`);
+					};
+
+					slider
+						.setDynamicTooltip()
+						.setLimits(1, 100, 1) // min: 1%, max: 100%, step: 1%
+						.setValue(this.plugin.settings.wheelZoomPercentage)
+						.onChange(async value => {
+							updateDisplay(value);
+							this.plugin.settings.wheelZoomPercentage = value;
+							requestSaveSettings();
+						});
+
+					updateDisplay(this.plugin.settings.wheelZoomPercentage);
+					slider.sliderEl.parentElement?.prepend(valueDisplay);
+				});
+		});
+
+		mousewheelGroup.addSetting(setting => {
+			setting
+				.setName(strings.settings.items.invertScroll.name)
+				.setDesc(strings.settings.items.invertScroll.desc)
+				.addToggle(toggle => {
+					toggle.setValue(this.plugin.settings.invertScrollDirection).onChange(async (value: boolean) => {
+						this.plugin.settings.invertScrollDirection = value;
+						void saveSettings();
+					});
+				});
+		});
+
+		const externalEditorGroup = createGroup(strings.settings.headings.externalEditor);
+		externalEditorGroup.addSetting(setting => {
+			setting
+				.setName(strings.settings.items.externalEditorName.name)
+				.setDesc(strings.settings.items.externalEditorName.desc)
+				.addText(text => {
+					text
+						.setPlaceholder(strings.settings.items.externalEditorName.placeholder)
+						.setValue(this.plugin.settings.externalEditorName)
+						.onChange(async value => {
+							this.plugin.settings.externalEditorName = value;
+							requestSaveSettings();
+						});
+				});
+		});
+
+		if (Platform.isMacOS) {
+			externalEditorGroup.addSetting(setting => {
+				setting
+					.setName(strings.settings.items.externalEditorPathMac.name)
+					.setDesc(strings.settings.items.externalEditorPathMac.desc)
+					.addText(text => {
+						text
+							.setPlaceholder(strings.settings.items.externalEditorPathMac.placeholder)
+							.setValue(this.plugin.settings.externalEditorPathMac)
+							.onChange(async value => {
+								const cleanedPath = value.replace(/\\ /g, ' ');
+								this.plugin.settings.externalEditorPathMac = cleanedPath;
+								requestSaveSettings();
+							});
+					});
+			});
 		}
 
 		if (Platform.isWin) {
-			new Setting(containerEl)
-				.setName(strings.settings.items.externalEditorPathWin.name)
-				.setDesc(strings.settings.items.externalEditorPathWin.desc)
-				.addText(text => {
-					text
-						.setPlaceholder(strings.settings.items.externalEditorPathWin.placeholder)
-						.setValue(this.plugin.settings.externalEditorPathWin)
-						.onChange(async (value) => {
-							const cleanedPath = value.replace(/\\ /g, ' ');
-							this.plugin.settings.externalEditorPathWin = cleanedPath;
-							await this.plugin.saveSettings();
-						});
-				});
+			externalEditorGroup.addSetting(setting => {
+				setting
+					.setName(strings.settings.items.externalEditorPathWin.name)
+					.setDesc(strings.settings.items.externalEditorPathWin.desc)
+					.addText(text => {
+						text
+							.setPlaceholder(strings.settings.items.externalEditorPathWin.placeholder)
+							.setValue(this.plugin.settings.externalEditorPathWin)
+							.onChange(async value => {
+								const cleanedPath = value.replace(/\\ /g, ' ');
+								this.plugin.settings.externalEditorPathWin = cleanedPath;
+								requestSaveSettings();
+							});
+					});
+			});
 		}
 
 		// Linux or other desktop platforms
 		if (!Platform.isMacOS && !Platform.isWin && !Platform.isMobile) {
-			new Setting(containerEl)
-				.setName(strings.settings.items.externalEditorPathLinux.name)
-				.setDesc(strings.settings.items.externalEditorPathLinux.desc)
-				.addText(text => {
-					text
-						.setPlaceholder(strings.settings.items.externalEditorPathLinux.placeholder)
-						.setValue(this.plugin.settings.externalEditorPathLinux)
-						.onChange(async (value) => {
-							const cleanedPath = value.trim();
-							this.plugin.settings.externalEditorPathLinux = cleanedPath;
-							await this.plugin.saveSettings();
-						});
-				});
+			externalEditorGroup.addSetting(setting => {
+				setting
+					.setName(strings.settings.items.externalEditorPathLinux.name)
+					.setDesc(strings.settings.items.externalEditorPathLinux.desc)
+					.addText(text => {
+						text
+							.setPlaceholder(strings.settings.items.externalEditorPathLinux.placeholder)
+							.setValue(this.plugin.settings.externalEditorPathLinux)
+							.onChange(async value => {
+								const cleanedPath = value.trim();
+								this.plugin.settings.externalEditorPathLinux = cleanedPath;
+								requestSaveSettings();
+							});
+					});
+			});
 		}
 
 		// Advanced section
-		new Setting(containerEl)
-			.setName(strings.settings.headings.advanced)
-			.setHeading();
+		const advancedGroup = createGroup(strings.settings.headings.advanced);
+		advancedGroup.addSetting(setting => {
+			setting
+				.setName(strings.settings.items.confirmDelete.name)
+				.setDesc(strings.settings.items.confirmDelete.desc)
+				.addToggle(toggle =>
+					toggle.setValue(this.plugin.settings.confirmBeforeDelete).onChange(async value => {
+						this.plugin.settings.confirmBeforeDelete = value;
+						void saveSettings();
+					})
+				);
+		});
 
-		new Setting(containerEl)
-			.setName(strings.settings.items.confirmDelete.name)
-			.setDesc(strings.settings.items.confirmDelete.desc)
-			.addToggle(toggle => toggle
-				.setValue(this.plugin.settings.confirmBeforeDelete)
-				.onChange(async (value) => {
-					this.plugin.settings.confirmBeforeDelete = value;
-					await this.plugin.saveSettings();
-				}));
-
-		new Setting(containerEl)
-			.setName(strings.settings.items.debugMode.name)
-			.setDesc(strings.settings.items.debugMode.desc)
-			.addToggle(toggle => {
-				toggle
-					.setValue(this.plugin.settings.debugMode)
-					.onChange(async (value: boolean) => {
+		advancedGroup.addSetting(setting => {
+			setting
+				.setName(strings.settings.items.debugMode.name)
+				.setDesc(strings.settings.items.debugMode.desc)
+				.addToggle(toggle => {
+					toggle.setValue(this.plugin.settings.debugMode).onChange(async (value: boolean) => {
 						this.plugin.settings.debugMode = value;
-						await this.plugin.saveSettings();
+						void saveSettings();
 					});
-			});
+				});
+		});
 		
-		// Set initial visibility of sub-settings
-		this.setElementVisibility(menuSubSettingsEl, this.plugin.settings.toggleIndividualMenuOptions);
+		// Visibility handled by `wireToggleSettingWithSubSettings()`.
 	}
 } 

@@ -14,6 +14,11 @@ import './utils/types';
 export default class PixelPerfectImage extends Plugin {
 	settings: PixelPerfectImageSettings;
 	private hasStoredData = false;
+	private settingsSaveQueue: Promise<void> = Promise.resolve();
+	private settingsSaveDebounceTimer: number | null = null;
+	private settingsSaveDebouncedPromise: Promise<void> | null = null;
+	private settingsSaveDebouncedResolve: (() => void) | null = null;
+	private settingsSaveDebouncedReject: ((error: unknown) => void) | null = null;
 	
 	// Services
 	eventService: EventService;
@@ -46,6 +51,16 @@ export default class PixelPerfectImage extends Plugin {
 		// Cleanup services
 		this.eventService.cleanup();
 		this.imageService.clearDimensionCache();
+		if (this.settingsSaveDebounceTimer !== null) {
+			window.clearTimeout(this.settingsSaveDebounceTimer);
+			this.settingsSaveDebounceTimer = null;
+		}
+		if (this.settingsSaveDebouncedPromise) {
+			this.settingsSaveDebouncedReject?.(new Error('Plugin unloaded before settings could be saved'));
+			this.settingsSaveDebouncedPromise = null;
+			this.settingsSaveDebouncedResolve = null;
+			this.settingsSaveDebouncedReject = null;
+		}
 	}
 
 	async loadSettings() {
@@ -67,7 +82,48 @@ export default class PixelPerfectImage extends Plugin {
 	}
 
 	async saveSettings() {
-		await this.saveData(this.settings);
+		await this.enqueueSettingsSave();
+	}
+
+	/**
+	 * Debounced version of `saveSettings()` for high-frequency updates (typing/slider drag).
+	 * Resolves after the coalesced save has been persisted.
+	 */
+	requestSaveSettings(debounceMs = 250): Promise<void> {
+		if (!this.settingsSaveDebouncedPromise) {
+			this.settingsSaveDebouncedPromise = new Promise<void>((resolve, reject) => {
+				this.settingsSaveDebouncedResolve = resolve;
+				this.settingsSaveDebouncedReject = reject;
+			});
+		}
+
+		if (this.settingsSaveDebounceTimer !== null) {
+			window.clearTimeout(this.settingsSaveDebounceTimer);
+		}
+
+		this.settingsSaveDebounceTimer = window.setTimeout(() => {
+			this.settingsSaveDebounceTimer = null;
+
+			void this.enqueueSettingsSave()
+				.then(() => this.settingsSaveDebouncedResolve?.())
+				.catch(error => this.settingsSaveDebouncedReject?.(error))
+				.finally(() => {
+					this.settingsSaveDebouncedPromise = null;
+					this.settingsSaveDebouncedResolve = null;
+					this.settingsSaveDebouncedReject = null;
+				});
+		}, debounceMs);
+
+		return this.settingsSaveDebouncedPromise;
+	}
+
+	private enqueueSettingsSave(): Promise<void> {
+		this.settingsSaveQueue = this.settingsSaveQueue
+			.catch(error => {
+				console.error('Failed to save settings (previous save):', error);
+			})
+			.then(() => this.saveData(this.settings));
+		return this.settingsSaveQueue;
 	}
 
 	private async checkForVersionUpdate(): Promise<void> {

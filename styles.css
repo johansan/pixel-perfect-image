@@ -43,6 +43,11 @@
 /* Settings page indentation for sub-settings */
 .pixel-perfect-sub-settings {
   margin-inline-start: var(--size-4-5);
+  padding-inline-start: var(--size-4-5);
+}
+
+.pixel-perfect-setting-hidden {
+  display: none;
 }
 
 /* Make delete menu items red (items with trash icon) */
