@@ -36,7 +36,7 @@ const RELEASE_NOTES: ReleaseNote[] = [
 		date: '2025-12-16',
 		showOnUpdate: true,
 		new: ['==SVG Support==. You can now resize SVG images like any other image. Copying SVG images is not supported since Obsidian clipboard only supports bitmap images.'],
-		improved: ['Settings now support the new ==SettingGroup API== introduced with Obsidian 1.11. It just looks better.'],
+		improved: ['Settings now support the new ==SettingGroup API== in Obsidian 1.11 and later. Settings groups are now clearly outlined.'],
 		changed: [],
 		fixed: []
 	}
