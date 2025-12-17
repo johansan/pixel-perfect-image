@@ -550,12 +550,8 @@ function performRelease(releaseType, manifest, currentVersion, newVersion) {
             console.log(`\n🔍 DRY RUN COMPLETE - Version ${newVersion} would be released`);
         } else {
             console.log(`\n🎉 Successfully released version ${newVersion}`);
-            console.log('GitHub Actions will now create the release draft.');
-            console.log('\nNext steps:');
-            console.log('1. Wait for GitHub Actions to complete');
-            console.log('2. Go to GitHub releases page');
-            console.log('3. Add release notes');
-            console.log('4. Publish the release\n');
+            console.log('GitHub Actions will now create the GitHub release and attach built files.');
+            console.log('Release notes will be pulled from src/releaseNotes.ts.\n');
         }
     } catch (error) {
         // If git operations fail, rollback file changes
