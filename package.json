@@ -3,6 +3,9 @@
   "version": "1.0.22",
   "description": "Pixel perfect 100% image resizing, copy to clipboard, show image in Finder/Explorer, edit image in external editor, and much more.",
   "main": "main.js",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
@@ -20,7 +23,7 @@
   "license": "MIT",
   "devDependencies": {
     "@eslint/js": "^9.32.0",
-    "@types/node": "^16.11.6",
+    "@types/node": "^20.12.12",
     "builtin-modules": "3.3.0",
     "esbuild": "^0.25.0",
     "eslint": "^9.32.0",
