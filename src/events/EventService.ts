@@ -12,7 +12,12 @@ export class EventService {
 	private wheelDebounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 	private wheelMaxWaitTimers = new Map<string, ReturnType<typeof setTimeout>>();
 	private wheelTargets = new Map<string, { activeFile: TFile; imgFile: TFile }>();
+	// Tracks which DOM image element we applied a temporary inline width to (for immediate visual feedback).
+	// This is keyed by active note + image file, and is cleared after the queued markdown update flushes.
+	private wheelDomTargets = new Map<string, HTMLImageElement>();
+	// Serializes wheel computations per image so rapid wheel events don't race width calculations.
 	private wheelComputeQueue = new Map<string, Promise<void>>();
+	// Serializes writes per image so we never overlap markdown link updates for the same target.
 	private wheelWriteQueue = new Map<string, Promise<void>>();
 	private static readonly WHEEL_WIDTH_CACHE_MAX_ENTRIES = 300;
 	private static readonly WHEEL_WRITE_DEBOUNCE_MS = 250;
@@ -29,6 +34,7 @@ export class EventService {
 	registerWheelEvents(currentWindow: Window) {
 		// If already registered previously, clean it up first
 		if (this.wheelEventCleanup) {
+			// Persist any pending wheel resizes before swapping listeners, so we don't lose the last change.
 			this.flushAllPendingWheelWrites();
 			this.wheelEventCleanup();
 			this.wheelEventCleanup = null;
@@ -60,29 +66,48 @@ export class EventService {
 		};
 
 		// Create bound event handler for cleanup
-		const wheelHandler = async (ev: WheelEvent) => {
-			// If zoom is not enabled or modifier not held, let default scroll happen
-			if (!this.plugin.settings.enableWheelZoom || !this.isModifierKeyHeld) return;
+		const wheelHandler = (ev: WheelEvent) => {
+			if (!this.plugin.settings.enableWheelZoom) return;
 
-			// Verify key is still held (handles Alt+Tab cases)
+			// We track modifier key state via keydown/keyup for responsiveness, but also re-check the
+			// wheel event flags to handle focus changes (e.g. Alt+Tab) and input devices that only
+			// surface modifier state on the wheel event itself.
+			const modifierHeld = this.isModifierKeyHeld || this.isModifierKeyStillHeld(ev);
+			if (!modifierHeld) return;
+
+			// Verify key is still held (handles Alt+Tab cases).
 			if (!this.isModifierKeyStillHeld(ev)) {
-				this.setModifierKeyState(false);
+				if (this.isModifierKeyHeld) {
+					this.setModifierKeyState(false);
+					this.flushAllPendingWheelWrites();
+				}
 				return;
+			}
+
+			if (!this.isModifierKeyHeld) {
+				this.setModifierKeyState(true);
 			}
 
 			const img = findImageElement(ev.target);
 			if (!img) return;
 
-			// Prevent default immediately when we'll handle the zoom
+			// Wheel events can originate from non-active markdown panes; resolve the owning markdown
+			// file by walking open markdown views and checking DOM containment.
+			const activeFile = this.getMarkdownFileForElement(img);
+			if (!activeFile) return;
+
+			// Resolve the vault image file from the DOM element + active note context.
+			const imgFile = this.plugin.fileService.getFileForImage(img, activeFile);
+			if (!imgFile) return;
+
+			// Only prevent scrolling once we're sure we're handling an image zoom.
 			ev.preventDefault();
-			
-			// Call handleImageWheel directly
-			try {
-				await this.handleImageWheel(ev, img);
-			} catch (error) {
+			ev.stopPropagation();
+
+			void this.handleImageWheel(ev, img, activeFile, imgFile).catch((error) => {
 				errorLog('Error handling wheel event:', error);
 				new Notice(strings.notices.failedToResize);
-			}
+			});
 		};
 
 		// Register handlers with an AbortController so re-registering on layout changes
@@ -93,8 +118,10 @@ export class EventService {
 		currentWindow.addEventListener('blur', blurHandler, { signal: wheelEventController.signal });
 
 		// For wheel event, we need passive: false to prevent scrolling.
-		doc.addEventListener('wheel', wheelHandler, {
+		// Capture on window so we can intercept before Obsidian's own handlers scroll the view.
+		currentWindow.addEventListener('wheel', wheelHandler, {
 			passive: false,
+			capture: true,
 			signal: wheelEventController.signal
 		});
 
@@ -130,6 +157,18 @@ export class EventService {
 		}
 	}
 
+	private getMarkdownFileForElement(element: HTMLElement): TFile | null {
+		// Map a rendered DOM element back to the markdown file that owns it.
+		// This avoids relying on "active file", which may not match the pane being scrolled.
+		for (const leaf of this.plugin.app.workspace.getLeavesOfType('markdown')) {
+			const view = leaf.view;
+			if (!(view instanceof MarkdownView)) continue;
+			if (!view.file) continue;
+			if (view.containerEl.contains(element)) return view.file;
+		}
+		return null;
+	}
+
 	private getWheelWidthCacheKey(activeFile: TFile, imgFile: TFile): string {
 		return `${activeFile.path}::${imgFile.path}`;
 	}
@@ -151,6 +190,7 @@ export class EventService {
 	private scheduleWheelWidthFlush(cacheKey: string, activeFile: TFile, imgFile: TFile) {
 		this.wheelTargets.set(cacheKey, { activeFile, imgFile });
 
+		// Debounce frequent wheel events into fewer markdown writes.
 		const existingDebounce = this.wheelDebounceTimers.get(cacheKey);
 		if (existingDebounce) clearTimeout(existingDebounce);
 
@@ -178,6 +218,7 @@ export class EventService {
 		}
 
 		const { activeFile, imgFile } = target;
+		// Chain writes per image so link updates are applied in order and never overlap.
 		const writeTask = (this.wheelWriteQueue.get(cacheKey) ?? Promise.resolve())
 			.catch(() => undefined)
 			.then(async () => {
@@ -212,6 +253,11 @@ export class EventService {
 				} else {
 					this.wheelTargets.delete(cacheKey);
 				}
+
+				// Avoid letting our temporary inline style block future non-wheel resizes.
+				if (!this.wheelPendingWidth.has(cacheKey) && !this.wheelDebounceTimers.has(cacheKey)) {
+					this.clearWheelInlineWidth(cacheKey);
+				}
 			});
 
 		this.wheelWriteQueue.set(cacheKey, writeTask);
@@ -231,17 +277,22 @@ export class EventService {
 		}
 	}
 
-	async handleImageWheel(evt: WheelEvent, target: HTMLImageElement) {
+	private clearWheelInlineWidth(cacheKey: string) {
+		const img = this.wheelDomTargets.get(cacheKey);
+		if (!img) return;
+
+		// Only remove inline width that we applied during wheel-resize; don't clobber user styles.
+		if (img.dataset.ppiWheelInlineWidth === 'true') {
+			img.style.removeProperty('width');
+			delete img.dataset.ppiWheelInlineWidth;
+		}
+
+		this.wheelDomTargets.delete(cacheKey);
+	}
+
+	async handleImageWheel(evt: WheelEvent, target: HTMLImageElement, activeFile: TFile, imgFile: TFile) {
 		if (!this.plugin.settings.enableWheelZoom) return;
-		
-		const markdownView = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
-		if (!markdownView?.file) return;
-
-		// Avoid spamming notices on the wheel hot-path; failures can happen during rerenders.
-		const result = await this.plugin.fileService.getImageFileWithErrorHandling(target, false);
-		if (!result) return;
-
-		const cacheKey = this.getWheelWidthCacheKey(result.activeFile, result.imgFile);
+		const cacheKey = this.getWheelWidthCacheKey(activeFile, imgFile);
 
 		// Serialize wheel computations per image to keep width math consistent during fast scrolling.
 		const deltaY = evt.deltaY;
@@ -254,7 +305,7 @@ export class EventService {
 					width =
 						target.naturalWidth > 0
 							? target.naturalWidth
-							: (await this.plugin.imageService.readImageDimensions(result.imgFile)).width;
+							: (await this.plugin.imageService.readImageDimensions(imgFile)).width;
 				} catch {
 					return;
 				}
@@ -263,6 +314,8 @@ export class EventService {
 				const cachedWidth = this.wheelWidthCache.get(cacheKey);
 				const pendingWidth = this.wheelPendingWidth.get(cacheKey);
 
+				// Determine "current width" using the fastest/safest sources first, and only fall back to
+				// scanning the editor text as a last resort (slow, but should be rare).
 				// Best-effort current width:
 				// 1) Parse from DOM alt (fast + reflects manual edits once rendered)
 				// 2) Use our pending value (covers render lag + debounce window)
@@ -271,7 +324,7 @@ export class EventService {
 				const customWidth =
 					altWidth !== null
 						? altWidth
-						: (pendingWidth ?? cachedWidth ?? this.plugin.imageService.getCurrentImageWidth(result.activeFile, result.imgFile));
+						: (pendingWidth ?? cachedWidth ?? this.plugin.imageService.getCurrentImageWidth(activeFile, imgFile));
 
 				if (altWidth !== null) {
 					this.setWheelWidthCache(cacheKey, altWidth);
@@ -301,9 +354,17 @@ export class EventService {
 
 				// Only update if the width has actually changed
 				if (newWidth !== currentWidth) {
+					// Give immediate visual feedback while the markdown link update is debounced/queued.
+					target.style.width = `${newWidth}px`;
+					target.dataset.ppiWheelInlineWidth = 'true';
+					target.removeAttribute('height');
+					target.setAttribute('width', String(newWidth));
+					this.wheelDomTargets.set(cacheKey, target);
+
 					this.setWheelWidthCache(cacheKey, newWidth);
 					this.wheelPendingWidth.set(cacheKey, newWidth);
-					this.scheduleWheelWidthFlush(cacheKey, result.activeFile, result.imgFile);
+					// Schedule a debounced write to persist the new width in the markdown image link.
+					this.scheduleWheelWidthFlush(cacheKey, activeFile, imgFile);
 				}
 			});
 
@@ -386,6 +447,9 @@ export class EventService {
 		this.wheelDebounceTimers.clear();
 		this.wheelMaxWaitTimers.clear();
 		this.wheelTargets.clear();
+		for (const cacheKey of this.wheelDomTargets.keys()) {
+			this.clearWheelInlineWidth(cacheKey);
+		}
 		this.wheelComputeQueue.clear();
 		this.wheelWriteQueue.clear();
 		if (this.wheelEventCleanup) {
