@@ -114,6 +114,7 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 	constructor(app: App, plugin: PixelPerfectImage) {
 		super(app, plugin);
 		this.plugin = plugin;
+		this.icon = 'image';
 	}
 
 	async display() {
