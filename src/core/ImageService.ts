@@ -2,6 +2,7 @@ import { MarkdownView, TFile } from 'obsidian';
 import type PixelPerfectImage from '../main';
 import { createUserVisibleError, errorLog, findLastObsidianImageSizeParam, isUserVisibleError } from '../utils/utils';
 import { strings } from '../i18n';
+import { DEFAULT_EXTERNAL_IMAGE_FALLBACK_WIDTH_PX } from '../utils/constants';
 
 /**
  * Service for handling image operations like resizing, reading dimensions, and copying
@@ -256,6 +257,21 @@ export class ImageService {
     }
 
     /**
+     * Updates the width parameter for external (http/https) markdown image links by URL.
+     */
+    async updateExternalImageLinkWidth(activeFile: TFile, imageUrl: string, newWidth: number) {
+        await this.plugin.linkService.updateExternalImageLinks(activeFile, imageUrl, (params: string[]) => {
+            const sizeParam = findLastObsidianImageSizeParam(params);
+            if (sizeParam) {
+                const replacement = String(newWidth);
+                return [...params.slice(0, sizeParam.index), replacement, ...params.slice(sizeParam.index + 1)];
+            }
+
+            return [...params, String(newWidth)];
+        });
+    }
+
+    /**
      * Removes the width parameter from image links.
      * @param imageFile - The image file being referenced
      */
@@ -274,6 +290,20 @@ export class ImageService {
             // No width parameter found, return unchanged
             return params;
             
+        });
+    }
+
+    /**
+     * Removes the width parameter for external (http/https) markdown image links by URL.
+     */
+    async removeExternalImageWidth(activeFile: TFile, imageUrl: string) {
+        await this.plugin.linkService.updateExternalImageLinks(activeFile, imageUrl, (params: string[]) => {
+            const sizeParam = findLastObsidianImageSizeParam(params);
+            if (sizeParam) {
+                return [...params.slice(0, sizeParam.index), ...params.slice(sizeParam.index + 1)];
+            }
+
+            return params;
         });
     }
 
@@ -343,6 +373,32 @@ export class ImageService {
 
         const docText = editor.getValue();
         return this.plugin.linkService.findCurrentImageWidthInText(activeFile, imageFile, docText);
+    }
+
+    /**
+     * Gets the current custom width of an external (http/https) image if set in the link.
+     */
+    getCurrentExternalImageWidth(_activeFile: TFile, imageUrl: string): number | null {
+        const editor = this.plugin.app.workspace.getActiveViewOfType(MarkdownView)?.editor;
+        if (!editor) return null;
+
+        const docText = editor.getValue();
+        return this.plugin.linkService.findCurrentExternalImageWidthInText(imageUrl, docText);
+    }
+
+    /**
+     * Resizes an external image by updating the width parameter in its markdown link.
+     * Percentages are based on the intrinsic image width when available, otherwise a fallback width is used.
+     */
+    async resizeExternalImage(activeFile: TFile, imageUrl: string, img: HTMLImageElement, size: number, isAbsolute = false) {
+        if (isAbsolute) {
+            await this.updateExternalImageLinkWidth(activeFile, imageUrl, size);
+            return;
+        }
+
+        const baseWidth = img.naturalWidth > 0 ? img.naturalWidth : DEFAULT_EXTERNAL_IMAGE_FALLBACK_WIDTH_PX;
+        const newWidth = Math.round((baseWidth * size) / 100);
+        await this.updateExternalImageLinkWidth(activeFile, imageUrl, newWidth);
     }
 
     /**

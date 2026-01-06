@@ -1,6 +1,6 @@
 import { FileSystemAdapter, Menu, Notice, Platform, normalizePath, MarkdownView, TFile } from 'obsidian';
 import type PixelPerfectImage from '../main';
-import { findImageElement, errorLog, isRemoteImage, isUserVisibleError } from '../utils/utils';
+import { findImageElement, errorLog, findLastObsidianImageSizeParam, isRemoteImage, isUserVisibleError } from '../utils/utils';
 import { getExternalEditorPath, parseResizeSize } from './settings';
 import { join } from 'path';
 import { strings } from '../i18n';
@@ -47,6 +47,71 @@ export class MenuService {
         ];
 
         return sources.some((source) => this.isSvgUrl(source));
+    }
+
+    private parseWidthFromImageAlt(img: HTMLImageElement): number | null {
+        const alt = img.getAttribute('alt') ?? '';
+        if (!alt) return null;
+        const parts = alt.split('|').map((part) => part.trim()).filter(Boolean);
+        return findLastObsidianImageSizeParam(parts)?.width ?? null;
+    }
+
+    async addRemoteResizeMenuItems(menu: Menu, img: HTMLImageElement, activeFile: TFile, imageUrl: string): Promise<void> {
+        const isSvg = this.isSvgBySrc(img);
+        const customWidth =
+            this.parseWidthFromImageAlt(img)
+            ?? this.plugin.imageService.getCurrentExternalImageWidth(activeFile, imageUrl);
+
+        let actualWidth: number | null = null;
+        if (!isSvg) {
+            actualWidth = this.getRasterNaturalDimensions(img)?.width ?? null;
+        }
+        const currentScale = customWidth !== null && actualWidth !== null ? Math.round((customWidth / actualWidth) * 100) : null;
+
+        // Add resize options from settings
+        if (this.plugin.settings.customResizeSizes.length > 0) {
+            this.plugin.settings.customResizeSizes.forEach((sizeStr) => {
+                const parsed = parseResizeSize(sizeStr);
+                if (!parsed) return; // Skip invalid formats
+
+                const value = parsed.amount;
+                const unit = parsed.unit;
+                const label = strings.menu.resizeTo.replace('{size}', sizeStr);
+                const isPercentage = unit === '%';
+                const disabled = isPercentage
+                    ? (isSvg && actualWidth === null ? true : (currentScale === value))
+                    : (customWidth === value);
+
+                let icon = 'image';
+                if (isPercentage) {
+                    icon = value === 100 ? 'image' : 'percent';
+                } else {
+                    icon = 'ruler';
+                }
+
+                this.addMenuItem(
+                    menu,
+                    label,
+                    icon,
+                    () => this.plugin.imageService.resizeExternalImage(activeFile, imageUrl, img, value, !isPercentage),
+                    strings.notices.failedToResizeTo.replace('{size}', sizeStr),
+                    disabled
+                );
+            });
+        }
+
+        if (customWidth !== null) {
+            this.addMenuItem(
+                menu,
+                strings.menu.removeCustomSize,
+                'reset',
+                async () => {
+                    await this.plugin.imageService.removeExternalImageWidth(activeFile, imageUrl);
+                    new Notice(strings.notices.customSizeRemoved);
+                },
+                strings.notices.failedToRemoveSize
+            );
+        }
     }
 
     /**
@@ -103,6 +168,10 @@ export class MenuService {
         const isRemote = isRemoteImage(img);
         
         if (isRemote) {
+            const activeFile = markdownView.file;
+            if (!activeFile) return;
+            const imageUrl = img.currentSrc || img.src;
+
             // For remote images, show indicator and limited options
             this.addInfoMenuItem(menu, strings.menu.remoteImage, 'globe');
             if (!this.isSvgBySrc(img)) {
@@ -120,6 +189,10 @@ export class MenuService {
                 },
                 strings.notices.failedToCopyUrl
             );
+
+            // Resize options for remote images (updates markdown link by URL)
+            menu.addSeparator();
+            await this.addRemoteResizeMenuItems(menu, img, activeFile, imageUrl);
         } else {
             const resolvedImage = await this.plugin.fileService.getImageFileWithErrorHandling(img);
             const currentWidth = resolvedImage

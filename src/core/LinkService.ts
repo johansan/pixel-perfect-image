@@ -16,7 +16,15 @@ export class LinkService {
 
     private scanMarkdownImageLinks(
         text: string,
-        onMatch: (match: { start: number; end: number; fullMatch: string; description: string; linkPath: string; titleSuffix: string }) => void
+        onMatch: (match: {
+            start: number;
+            end: number;
+            fullMatch: string;
+            description: string;
+            linkPath: string;
+            titleSuffix: string;
+            rawDestination: string;
+        }) => void
     ) {
         let index = 0;
         const length = text.length;
@@ -84,7 +92,8 @@ export class LinkService {
                 fullMatch,
                 description,
                 linkPath: url,
-                titleSuffix
+                titleSuffix,
+                rawDestination
             });
 
             index = destEndParen + 1;
@@ -142,14 +151,14 @@ export class LinkService {
 
     private replaceMarkdownImageLinks(
         text: string,
-        replacer: (fullMatch: string, description: string, linkPath: string, titleSuffix: string) => string
+        replacer: (fullMatch: string, description: string, linkPath: string, titleSuffix: string, rawDestination: string) => string
     ): string {
         let result = '';
         let lastIndex = 0;
 
-        this.scanMarkdownImageLinks(text, ({ start, end, fullMatch, description, linkPath, titleSuffix }) => {
+        this.scanMarkdownImageLinks(text, ({ start, end, fullMatch, description, linkPath, titleSuffix, rawDestination }) => {
             result += text.substring(lastIndex, start);
-            result += replacer(fullMatch, description, linkPath, titleSuffix);
+            result += replacer(fullMatch, description, linkPath, titleSuffix, rawDestination);
             lastIndex = end;
         });
 
@@ -225,6 +234,37 @@ export class LinkService {
             // Pass true to encode spaces in the path
             const newDestination = `${this.buildLinkPath({ ...link, params: [] }, true)}${titleSuffix}`;
             return `![${newDescription}](${newDestination})`;
+        });
+    }
+
+    private normalizeUrlForComparison(value: string): string {
+        const trimmed = value.trim();
+        if (!trimmed) return '';
+
+        try {
+            return new URL(trimmed).href;
+        } catch {
+            return trimmed;
+        }
+    }
+
+    private isSameExternalUrl(a: string, b: string): boolean {
+        return this.normalizeUrlForComparison(a) === this.normalizeUrlForComparison(b);
+    }
+
+    /**
+     * Updates markdown-style image links (i.e. `![alt|100](https://...)`) by matching their destination URL.
+     * This is used for external images that do not exist as `TFile`s in the vault.
+     */
+    private updateExternalLinks(text: string, imageUrl: string, transform: (params: string[]) => string[]): string {
+        return this.replaceMarkdownImageLinks(text, (match, description, linkPath, _titleSuffix, rawDestination) => {
+            if (!this.isSameExternalUrl(linkPath, imageUrl)) return match;
+
+            const [baseDescRaw, ...params] = description.split("|");
+            const baseDesc = baseDescRaw.trim();
+            const newParams = transform(params);
+            const newDescription = newParams.length > 0 ? [baseDesc, ...newParams].join("|") : baseDesc;
+            return `![${newDescription}](${rawDestination})`;
         });
     }
 
@@ -357,6 +397,31 @@ export class LinkService {
     }
 
     /**
+     * Updates external (http/https) image links in the active file by matching the URL destination.
+     * Only affects markdown-style image links.
+     */
+    async updateExternalImageLinks(activeFile: TFile, imageUrl: string, transform: (params: string[]) => string[]): Promise<boolean> {
+        let didChange = false;
+
+        try {
+            await this.plugin.app.vault.process(activeFile, (data) => {
+                const { frontmatter, content } = this.splitFrontmatter(data);
+
+                const replacedText = this.updateExternalLinks(content, imageUrl, transform);
+                if (replacedText === content) return data;
+
+                didChange = true;
+                return frontmatter ? `${frontmatter}${replacedText}` : replacedText;
+            });
+        } catch (error) {
+            errorLog('Failed to update external image link:', error);
+            throw new Error('Failed to update external image link');
+        }
+
+        return didChange;
+    }
+
+    /**
      * Helper to resolve a file path to a TFile in the vault
      * @param linkPath - The path to resolve
      * @param activeFile - The currently active file for path resolution
@@ -396,6 +461,24 @@ export class LinkService {
     }
 
     /**
+     * Finds the current width override for an external (http/https) image URL from the given markdown text.
+     * Uses the same robust markdown scanning logic as link updates.
+     */
+    findCurrentExternalImageWidthInText(imageUrl: string, text: string): number | null {
+        let foundWidth: number | null = null;
+
+        this.scanMarkdownImageLinks(text, ({ description, linkPath }) => {
+            if (foundWidth !== null) return;
+            if (!this.isSameExternalUrl(linkPath, imageUrl)) return;
+            const [, ...params] = description.split("|");
+            const sizeParam = findLastObsidianImageSizeParam(params);
+            if (sizeParam) foundWidth = sizeParam.width;
+        });
+
+        return foundWidth;
+    }
+
+    /**
      * Removes all image links pointing to the specified file from the document.
      * Handles both wiki-style (![[image.png]]) and markdown-style (![](image.png)) links.
      * @param imageFile - The image file whose links should be removed
@@ -428,7 +511,7 @@ export class LinkService {
                 });
 
                 // Remove markdown-style links (![alt|100](image.png))
-                replacedText = this.replaceMarkdownImageLinks(replacedText, (match, description, linkPath, _titleSuffix) => {
+                replacedText = this.replaceMarkdownImageLinks(replacedText, (match, description, linkPath) => {
                     const link = this.parseLinkComponents(description, linkPath);
                     return this.resolveLink(link.path, activeFile, imageFile) ? '' : match;
                 });

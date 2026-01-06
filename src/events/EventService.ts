@@ -1,7 +1,12 @@
 import { Notice, MarkdownView, TFile } from 'obsidian';
 import type PixelPerfectImage from '../main';
-import { findImageElement, errorLog, findLastObsidianImageSizeParam } from '../utils/utils';
+import { findImageElement, errorLog, findLastObsidianImageSizeParam, isRemoteImage } from '../utils/utils';
 import { strings } from '../i18n';
+import { DEFAULT_EXTERNAL_IMAGE_FALLBACK_WIDTH_PX } from '../utils/constants';
+
+type WheelImageTarget =
+	| { kind: 'local'; imgFile: TFile }
+	| { kind: 'remote'; url: string };
 
 export class EventService {
 	private plugin: PixelPerfectImage;
@@ -11,7 +16,7 @@ export class EventService {
 	private wheelPendingWidth = new Map<string, number>();
 	private wheelDebounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 	private wheelMaxWaitTimers = new Map<string, ReturnType<typeof setTimeout>>();
-	private wheelTargets = new Map<string, { activeFile: TFile; imgFile: TFile }>();
+	private wheelTargets = new Map<string, { activeFile: TFile; target: WheelImageTarget }>();
 	// Tracks which DOM image element we applied a temporary inline width to (for immediate visual feedback).
 	// This is keyed by active note + image file, and is cleared after the queued markdown update flushes.
 	private wheelDomTargets = new Map<string, HTMLImageElement>();
@@ -96,15 +101,26 @@ export class EventService {
 			const activeFile = this.getMarkdownFileForElement(img);
 			if (!activeFile) return;
 
+			let target: WheelImageTarget | null = null;
+
 			// Resolve the vault image file from the DOM element + active note context.
 			const imgFile = this.plugin.fileService.getFileForImage(img, activeFile);
-			if (!imgFile) return;
+			if (imgFile) {
+				target = { kind: 'local', imgFile };
+			} else if (isRemoteImage(img)) {
+				const url = img.currentSrc || img.src;
+				if (url) {
+					target = { kind: 'remote', url };
+				}
+			}
+
+			if (!target) return;
 
 			// Only prevent scrolling once we're sure we're handling an image zoom.
 			ev.preventDefault();
 			ev.stopPropagation();
 
-			void this.handleImageWheel(ev, img, activeFile, imgFile).catch((error) => {
+			void this.handleImageWheel(ev, img, activeFile, target).catch((error) => {
 				errorLog('Error handling wheel event:', error);
 				new Notice(strings.notices.failedToResize);
 			});
@@ -169,8 +185,11 @@ export class EventService {
 		return null;
 	}
 
-	private getWheelWidthCacheKey(activeFile: TFile, imgFile: TFile): string {
-		return `${activeFile.path}::${imgFile.path}`;
+	private getWheelWidthCacheKey(activeFile: TFile, target: WheelImageTarget): string {
+		if (target.kind === 'local') {
+			return `${activeFile.path}::local::${target.imgFile.path}`;
+		}
+		return `${activeFile.path}::remote::${target.url}`;
 	}
 
 	private setWheelWidthCache(key: string, width: number) {
@@ -187,8 +206,8 @@ export class EventService {
 		return findLastObsidianImageSizeParam(parts)?.width ?? null;
 	}
 
-	private scheduleWheelWidthFlush(cacheKey: string, activeFile: TFile, imgFile: TFile) {
-		this.wheelTargets.set(cacheKey, { activeFile, imgFile });
+	private scheduleWheelWidthFlush(cacheKey: string, activeFile: TFile, target: WheelImageTarget) {
+		this.wheelTargets.set(cacheKey, { activeFile, target });
 
 		// Debounce frequent wheel events into fewer markdown writes.
 		const existingDebounce = this.wheelDebounceTimers.get(cacheKey);
@@ -211,13 +230,13 @@ export class EventService {
 	}
 
 	private flushWheelPendingWidth(cacheKey: string) {
-		const target = this.wheelTargets.get(cacheKey);
-		if (!target) {
+		const tracked = this.wheelTargets.get(cacheKey);
+		if (!tracked) {
 			this.wheelPendingWidth.delete(cacheKey);
 			return;
 		}
 
-		const { activeFile, imgFile } = target;
+		const { activeFile, target } = tracked;
 		// Chain writes per image so link updates are applied in order and never overlap.
 		const writeTask = (this.wheelWriteQueue.get(cacheKey) ?? Promise.resolve())
 			.catch(() => undefined)
@@ -225,7 +244,11 @@ export class EventService {
 				const pendingWidth = this.wheelPendingWidth.get(cacheKey);
 				if (pendingWidth === undefined) return;
 
-				await this.plugin.imageService.updateImageLinkWidth(imgFile, pendingWidth, activeFile);
+				if (target.kind === 'local') {
+					await this.plugin.imageService.updateImageLinkWidth(target.imgFile, pendingWidth, activeFile);
+				} else {
+					await this.plugin.imageService.updateExternalImageLinkWidth(activeFile, target.url, pendingWidth);
+				}
 				this.setWheelWidthCache(cacheKey, pendingWidth);
 
 				if (this.wheelPendingWidth.get(cacheKey) === pendingWidth) {
@@ -249,7 +272,7 @@ export class EventService {
 				}
 
 				if (this.wheelPendingWidth.has(cacheKey)) {
-					this.scheduleWheelWidthFlush(cacheKey, activeFile, imgFile);
+					this.scheduleWheelWidthFlush(cacheKey, activeFile, target);
 				} else {
 					this.wheelTargets.delete(cacheKey);
 				}
@@ -290,9 +313,9 @@ export class EventService {
 		this.wheelDomTargets.delete(cacheKey);
 	}
 
-	async handleImageWheel(evt: WheelEvent, target: HTMLImageElement, activeFile: TFile, imgFile: TFile) {
+	async handleImageWheel(evt: WheelEvent, domTarget: HTMLImageElement, activeFile: TFile, target: WheelImageTarget) {
 		if (!this.plugin.settings.enableWheelZoom) return;
-		const cacheKey = this.getWheelWidthCacheKey(activeFile, imgFile);
+		const cacheKey = this.getWheelWidthCacheKey(activeFile, target);
 
 		// Serialize wheel computations per image to keep width math consistent during fast scrolling.
 		const deltaY = evt.deltaY;
@@ -302,15 +325,18 @@ export class EventService {
 				let width: number;
 				try {
 					// Prefer DOM naturalWidth when available (avoids async vault reads on hot path).
-					width =
-						target.naturalWidth > 0
-							? target.naturalWidth
-							: (await this.plugin.imageService.readImageDimensions(imgFile)).width;
+					if (domTarget.naturalWidth > 0) {
+						width = domTarget.naturalWidth;
+					} else if (target.kind === 'local') {
+						width = (await this.plugin.imageService.readImageDimensions(target.imgFile)).width;
+					} else {
+						width = DEFAULT_EXTERNAL_IMAGE_FALLBACK_WIDTH_PX;
+					}
 				} catch {
 					return;
 				}
 
-				const altWidth = this.parseWidthFromImageAlt(target);
+				const altWidth = this.parseWidthFromImageAlt(domTarget);
 				const cachedWidth = this.wheelWidthCache.get(cacheKey);
 				const pendingWidth = this.wheelPendingWidth.get(cacheKey);
 
@@ -321,10 +347,13 @@ export class EventService {
 				// 2) Use our pending value (covers render lag + debounce window)
 				// 3) Use our last applied value
 				// 4) Fallback to scanning editor text (slow; should happen rarely)
-				const customWidth =
-					altWidth !== null
-						? altWidth
-						: (pendingWidth ?? cachedWidth ?? this.plugin.imageService.getCurrentImageWidth(activeFile, imgFile));
+				const customWidth = altWidth !== null
+					? altWidth
+					: pendingWidth ?? cachedWidth ?? (
+						target.kind === 'local'
+							? this.plugin.imageService.getCurrentImageWidth(activeFile, target.imgFile)
+							: this.plugin.imageService.getCurrentExternalImageWidth(activeFile, target.url)
+					);
 
 				if (altWidth !== null) {
 					this.setWheelWidthCache(cacheKey, altWidth);
@@ -355,16 +384,16 @@ export class EventService {
 				// Only update if the width has actually changed
 				if (newWidth !== currentWidth) {
 					// Give immediate visual feedback while the markdown link update is debounced/queued.
-					target.style.width = `${newWidth}px`;
-					target.dataset.ppiWheelInlineWidth = 'true';
-					target.removeAttribute('height');
-					target.setAttribute('width', String(newWidth));
-					this.wheelDomTargets.set(cacheKey, target);
+					domTarget.style.width = `${newWidth}px`;
+					domTarget.dataset.ppiWheelInlineWidth = 'true';
+					domTarget.removeAttribute('height');
+					domTarget.setAttribute('width', String(newWidth));
+					this.wheelDomTargets.set(cacheKey, domTarget);
 
 					this.setWheelWidthCache(cacheKey, newWidth);
 					this.wheelPendingWidth.set(cacheKey, newWidth);
 					// Schedule a debounced write to persist the new width in the markdown image link.
-					this.scheduleWheelWidthFlush(cacheKey, activeFile, imgFile);
+					this.scheduleWheelWidthFlush(cacheKey, activeFile, target);
 				}
 			});
 
