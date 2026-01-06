@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting, Platform } from 'obsidian';
+import { App, PluginSettingTab, Setting, Platform, requireApiVersion } from 'obsidian';
 import PixelPerfectImage from '../main';
 import { strings } from '../i18n';
 import { createSettingGroupFactory } from './settingGroups';
@@ -114,7 +114,9 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 	constructor(app: App, plugin: PixelPerfectImage) {
 		super(app, plugin);
 		this.plugin = plugin;
-		this.icon = 'image';
+		if (typeof requireApiVersion === 'function' && requireApiVersion('1.11.0')) {
+			this.icon = 'image';
+		}
 	}
 
 	async display() {
