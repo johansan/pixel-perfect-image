@@ -46,7 +46,12 @@ export const STRINGS_EN = {
         clickInEditorFirst: 'Please click in the editor first, then try copying again',
         failedToResize: 'Failed to resize image',
         failedToPerformAction: 'Failed to {action}',
-        
+        imageTooLargeToCopy: 'Image is too large to copy to clipboard',
+        fetchingLocalNetworkImage: 'Fetching image from a local network address',
+        failedToFetchExternalImage: 'Failed to fetch external image (HTTP {status})',
+        externalImageNotImage: 'The URL did not return an image',
+        externalImageFetchTimedOut: 'Timed out fetching external image',
+
         // Generic failure messages
         failedToCopyUrl: 'Failed to copy image URL',
         failedToCopyImage: 'Failed to copy image to clipboard',

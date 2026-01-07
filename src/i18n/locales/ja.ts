@@ -46,7 +46,12 @@ export const STRINGS_JA = {
         clickInEditorFirst: '最初にエディターをクリックしてから、もう一度コピーしてください',
         failedToResize: '画像のリサイズに失敗しました',
         failedToPerformAction: '{action}に失敗しました',
-        
+        imageTooLargeToCopy: '画像が大きすぎてクリップボードにコピーできません',
+        fetchingLocalNetworkImage: 'ローカルネットワークのアドレスから画像を取得しています',
+        failedToFetchExternalImage: '外部画像の取得に失敗しました (HTTP {status})',
+        externalImageNotImage: 'URL が画像を返しませんでした',
+        externalImageFetchTimedOut: '外部画像の取得がタイムアウトしました',
+
         // Generic failure messages
         failedToCopyUrl: '画像URLのコピーに失敗しました',
         failedToCopyImage: '画像のクリップボードへのコピーに失敗しました',

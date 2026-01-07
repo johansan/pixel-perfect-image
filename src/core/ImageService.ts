@@ -1,6 +1,6 @@
-import { MarkdownView, TFile } from 'obsidian';
+import { Notice, TFile, requestUrl } from 'obsidian';
 import type PixelPerfectImage from '../main';
-import { createUserVisibleError, errorLog, findLastObsidianImageSizeParam, isUserVisibleError } from '../utils/utils';
+import { createUserVisibleError, errorLog, findLastObsidianImageSizeParam, findMarkdownEditorForFile, getBestHttpImageSource, isHttpUrlString, isLocalNetworkUrl, isUserVisibleError } from '../utils/utils';
 import { strings } from '../i18n';
 import { DEFAULT_EXTERNAL_IMAGE_FALLBACK_WIDTH_PX } from '../utils/constants';
 
@@ -11,10 +11,296 @@ export class ImageService {
     private plugin: PixelPerfectImage;
     /** Cache to store image dimensions to avoid repeated file reads */
     private dimensionCache = new Map<string, { width: number; height: number }>();
+    private externalImageFetchInFlight = new Map<string, Promise<Blob>>();
     private static readonly DIMENSION_CACHE_MAX_ENTRIES = 300;
+    private static readonly CLIPBOARD_COPY_MAX_BYTES = 25 * 1024 * 1024; // 25 MB
+    private static readonly CLIPBOARD_COPY_MAX_PIXELS = 40_000_000; // ~160MB RGBA
+    private static readonly CLIPBOARD_COPY_MAX_DIMENSION = 12_000;
+    private static readonly CLIPBOARD_COPY_REQUEST_TIMEOUT_MS = 15_000;
     
     constructor(plugin: PixelPerfectImage) {
         this.plugin = plugin;
+    }
+
+    private async withTimeout<T>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> {
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
+        const timeoutPromise = new Promise<never>((_resolve, reject) => {
+            timeoutId = setTimeout(() => reject(createUserVisibleError(timeoutMessage)), timeoutMs);
+        });
+
+        try {
+            return await Promise.race([promise, timeoutPromise]);
+        } finally {
+            if (timeoutId) clearTimeout(timeoutId);
+        }
+    }
+
+    private getClipboardImageSrc(targetImg: HTMLImageElement): string {
+        const http = getBestHttpImageSource(targetImg);
+        if (isHttpUrlString(http)) return http;
+
+        // Prefer the resolved/current source for local/app/blob URLs; attributes like data-src can be relative.
+        return targetImg.currentSrc || targetImg.src || http;
+    }
+
+    private assertCopySizeOk(width: number, height: number) {
+        if (width <= 0 || height <= 0) {
+            throw createUserVisibleError(strings.notices.couldNotDetermineImageDimensions);
+        }
+        if (width > ImageService.CLIPBOARD_COPY_MAX_DIMENSION || height > ImageService.CLIPBOARD_COPY_MAX_DIMENSION) {
+            throw createUserVisibleError(strings.notices.imageTooLargeToCopy);
+        }
+        if (width * height > ImageService.CLIPBOARD_COPY_MAX_PIXELS) {
+            throw createUserVisibleError(strings.notices.imageTooLargeToCopy);
+        }
+    }
+
+    private async canvasToClipboard(source: CanvasImageSource, width: number, height: number): Promise<void> {
+        this.assertCopySizeOk(width, height);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            throw new Error('Failed to get canvas context');
+        }
+
+        ctx.drawImage(source, 0, 0, width, height);
+        const blob = await new Promise<Blob | null>((resolveBlob) => {
+            canvas.toBlob(resolveBlob, 'image/png');
+        });
+        if (!blob) {
+            throw new Error('Failed to create blob');
+        }
+        if (blob.size > ImageService.CLIPBOARD_COPY_MAX_BYTES) {
+            throw createUserVisibleError(strings.notices.imageTooLargeToCopy);
+        }
+
+        const item = new ClipboardItem({ [blob.type]: blob });
+        await navigator.clipboard.write([item]);
+    }
+
+    private parseContentLength(headers: Record<string, string> | undefined): number | null {
+        const contentLengthRaw =
+            headers?.['content-length'] ??
+            headers?.['Content-Length'] ??
+            headers?.['CONTENT-LENGTH'];
+        if (!contentLengthRaw) return null;
+
+        const contentLength = Number(contentLengthRaw);
+        if (!Number.isFinite(contentLength) || contentLength <= 0) return null;
+        return contentLength;
+    }
+
+    private parseContentType(headers: Record<string, string> | undefined): string | null {
+        const contentTypeRaw =
+            headers?.['content-type'] ??
+            headers?.['Content-Type'] ??
+            headers?.['CONTENT-TYPE'];
+        const contentType = contentTypeRaw?.split(';', 1)[0]?.trim();
+        return contentType || null;
+    }
+
+    private parseContentRangeTotal(headers: Record<string, string> | undefined): number | null {
+        const contentRangeRaw =
+            headers?.['content-range'] ??
+            headers?.['Content-Range'] ??
+            headers?.['CONTENT-RANGE'];
+        if (!contentRangeRaw) return null;
+
+        // Example: "bytes 0-0/12345" or "bytes 0-0/*"
+        const match = contentRangeRaw.match(/\/(\d+|\*)\s*$/);
+        if (!match) return null;
+        if (match[1] === '*') return null;
+        const total = Number(match[1]);
+        if (!Number.isFinite(total) || total <= 0) return null;
+        return total;
+    }
+
+    private sniffImageMimeType(data: ArrayBuffer): string | null {
+        const bytes = new Uint8Array(data.slice(0, 256));
+
+        // PNG
+        if (
+            bytes.length >= 8 &&
+            bytes[0] === 0x89 &&
+            bytes[1] === 0x50 &&
+            bytes[2] === 0x4e &&
+            bytes[3] === 0x47 &&
+            bytes[4] === 0x0d &&
+            bytes[5] === 0x0a &&
+            bytes[6] === 0x1a &&
+            bytes[7] === 0x0a
+        ) {
+            return 'image/png';
+        }
+
+        // JPEG
+        if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+            return 'image/jpeg';
+        }
+
+        // GIF
+        if (
+            bytes.length >= 6 &&
+            bytes[0] === 0x47 &&
+            bytes[1] === 0x49 &&
+            bytes[2] === 0x46 &&
+            bytes[3] === 0x38 &&
+            (bytes[4] === 0x37 || bytes[4] === 0x39) &&
+            bytes[5] === 0x61
+        ) {
+            return 'image/gif';
+        }
+
+        // WebP: RIFF....WEBP
+        if (
+            bytes.length >= 12 &&
+            bytes[0] === 0x52 &&
+            bytes[1] === 0x49 &&
+            bytes[2] === 0x46 &&
+            bytes[3] === 0x46 &&
+            bytes[8] === 0x57 &&
+            bytes[9] === 0x45 &&
+            bytes[10] === 0x42 &&
+            bytes[11] === 0x50
+        ) {
+            return 'image/webp';
+        }
+
+        // BMP
+        if (bytes.length >= 2 && bytes[0] === 0x42 && bytes[1] === 0x4d) {
+            return 'image/bmp';
+        }
+
+        // ICO
+        if (bytes.length >= 4 && bytes[0] === 0x00 && bytes[1] === 0x00 && bytes[2] === 0x01 && bytes[3] === 0x00) {
+            return 'image/x-icon';
+        }
+
+        // AVIF (ISO BMFF): ....ftypavif / ....ftypavis
+        if (bytes.length >= 12 && bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70) {
+            const brand = String.fromCharCode(bytes[8], bytes[9], bytes[10], bytes[11]);
+            if (brand === 'avif' || brand === 'avis') {
+                return 'image/avif';
+            }
+        }
+
+        // SVG (best-effort)
+        try {
+            const prefix = new TextDecoder('utf-8').decode(bytes);
+            const trimmed = prefix.trimStart().toLowerCase();
+            if (trimmed.includes('<svg')) return 'image/svg+xml';
+        } catch {
+            // ignore
+        }
+
+        return null;
+    }
+
+    private looksLikeHtml(data: ArrayBuffer): boolean {
+        const bytes = new Uint8Array(data.slice(0, 512));
+        try {
+            const prefix = new TextDecoder('utf-8').decode(bytes);
+            const trimmed = prefix.trimStart().toLowerCase();
+            return trimmed.startsWith('<!doctype html') || trimmed.startsWith('<html') || trimmed.includes('<html');
+        } catch {
+            return false;
+        }
+    }
+
+    private getExternalImageBlobPromise(url: string): Promise<Blob> {
+        const existing = this.externalImageFetchInFlight.get(url);
+        if (existing) return existing;
+
+        const fetchPromise = (async (): Promise<Blob> => {
+            if (isLocalNetworkUrl(url)) {
+                new Notice(strings.notices.fetchingLocalNetworkImage);
+            }
+
+            const baseHeaders = { Accept: 'image/*' };
+
+            // Try a small range request to discover total size via Content-Range before doing a full GET.
+            // Note: requestUrl cannot be aborted; this is best-effort to avoid full downloads when possible.
+            let alreadyFetched: { arrayBuffer: ArrayBuffer; headers: Record<string, string>; status: number } | null = null;
+            try {
+                const probe = await requestUrl({ url, method: 'GET', throw: false, headers: { ...baseHeaders, Range: 'bytes=0-0' } });
+
+                // Some servers ignore Range and return 200 with the full payload; in that case, reuse it.
+                if (probe.status === 200) {
+                    alreadyFetched = { arrayBuffer: probe.arrayBuffer, headers: probe.headers, status: probe.status };
+                } else if (probe.status === 206) {
+                    const total = this.parseContentRangeTotal(probe.headers);
+                    if (total !== null && total > ImageService.CLIPBOARD_COPY_MAX_BYTES) {
+                        throw createUserVisibleError(strings.notices.imageTooLargeToCopy);
+                    }
+                }
+            } catch (error) {
+                if (isUserVisibleError(error) && error.message === strings.notices.imageTooLargeToCopy) throw error;
+            }
+
+            const response = alreadyFetched
+                ? alreadyFetched
+                : await requestUrl({ url, method: 'GET', throw: false, headers: baseHeaders });
+
+            if (response.status < 200 || response.status >= 300) {
+                throw createUserVisibleError(
+                    strings.notices.failedToFetchExternalImage.replace('{status}', String(response.status))
+                );
+            }
+
+            const headerLength = this.parseContentLength(response.headers);
+            if (headerLength !== null && headerLength > ImageService.CLIPBOARD_COPY_MAX_BYTES) {
+                throw createUserVisibleError(strings.notices.imageTooLargeToCopy);
+            }
+
+            const arrayBuffer = response.arrayBuffer;
+            if (!(arrayBuffer instanceof ArrayBuffer) || arrayBuffer.byteLength <= 0) {
+                throw createUserVisibleError(
+                    strings.notices.failedToFetchExternalImage.replace('{status}', String(response.status))
+                );
+            }
+
+            const byteLength = arrayBuffer.byteLength;
+            if (byteLength > ImageService.CLIPBOARD_COPY_MAX_BYTES) {
+                throw createUserVisibleError(strings.notices.imageTooLargeToCopy);
+            }
+
+            const sniffedContentType = this.sniffImageMimeType(arrayBuffer);
+            const headerContentType = this.parseContentType(response.headers);
+            const normalizedHeaderContentType = headerContentType?.toLowerCase();
+            const headerIsImage = normalizedHeaderContentType?.startsWith('image/') ?? false;
+
+            if (
+                !sniffedContentType &&
+                (normalizedHeaderContentType === 'text/html' ||
+                    normalizedHeaderContentType === 'application/xhtml+xml' ||
+                    this.looksLikeHtml(arrayBuffer))
+            ) {
+                throw createUserVisibleError(strings.notices.externalImageNotImage);
+            }
+
+            const contentType = headerIsImage
+                ? (normalizedHeaderContentType as string)
+                : sniffedContentType ?? '';
+
+            return contentType ? new Blob([arrayBuffer], { type: contentType }) : new Blob([arrayBuffer]);
+        })();
+
+        this.externalImageFetchInFlight.set(url, fetchPromise);
+        fetchPromise.finally(() => this.externalImageFetchInFlight.delete(url));
+        return fetchPromise;
+    }
+
+    private async fetchExternalImageAsObjectUrl(url: string): Promise<{ objectUrl: string; revoke: () => void }> {
+        const blob = await this.withTimeout(
+            this.getExternalImageBlobPromise(url),
+            ImageService.CLIPBOARD_COPY_REQUEST_TIMEOUT_MS,
+            strings.notices.externalImageFetchTimedOut
+        );
+        const objectUrl = URL.createObjectURL(blob);
+        return { objectUrl, revoke: () => URL.revokeObjectURL(objectUrl) };
     }
 
     private setDimensionCache(path: string, dimensions: { width: number; height: number }) {
@@ -214,8 +500,8 @@ export class ImageService {
      * @param size - Either a percentage (e.g. 50) or absolute width in pixels (e.g. 600)
      * @param isAbsolute - If true, size is treated as pixels, otherwise as percentage
      */
-    async resizeImage(img: HTMLImageElement, size: number, isAbsolute = false) {
-        const result = await this.plugin.fileService.getImageFileWithErrorHandling(img, false);
+    async resizeImage(img: HTMLImageElement, size: number, isAbsolute = false, activeFileOverride?: TFile) {
+        const result = await this.plugin.fileService.getImageFileWithErrorHandling(img, false, activeFileOverride);
         if (!result) {
             throw createUserVisibleError(strings.notices.couldNotLocateImage);
         }
@@ -368,7 +654,7 @@ export class ImageService {
      * @returns The custom width if set, otherwise null
      */
     getCurrentImageWidth(activeFile: TFile, imageFile: TFile): number | null {
-        const editor = this.plugin.app.workspace.getActiveViewOfType(MarkdownView)?.editor;
+        const editor = findMarkdownEditorForFile(this.plugin.app, activeFile);
         if (!editor) return null;
 
         const docText = editor.getValue();
@@ -378,8 +664,8 @@ export class ImageService {
     /**
      * Gets the current custom width of an external (http/https) image if set in the link.
      */
-    getCurrentExternalImageWidth(_activeFile: TFile, imageUrl: string): number | null {
-        const editor = this.plugin.app.workspace.getActiveViewOfType(MarkdownView)?.editor;
+    getCurrentExternalImageWidth(activeFile: TFile, imageUrl: string): number | null {
+        const editor = findMarkdownEditorForFile(this.plugin.app, activeFile);
         if (!editor) return null;
 
         const docText = editor.getValue();
@@ -435,29 +721,38 @@ export class ImageService {
      */
     async copyImageToClipboard(targetImg: HTMLImageElement): Promise<void> {
         try {
-            // Fallback: load image from URL and copy via canvas
-            const img = await this.loadImage(targetImg.src, 'anonymous');
-            const canvas = document.createElement('canvas');
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) {
-                throw new Error('Failed to get canvas context');
+            const src = this.getClipboardImageSrc(targetImg);
+            if (!src) {
+                throw new Error('No image source found');
             }
 
-            // Draw the image to canvas and convert to blob
-            ctx.drawImage(img, 0, 0);
-            const blob = await new Promise<Blob | null>((resolveBlob) => {
-                canvas.toBlob(resolveBlob);
-            });
-
-            if (!blob) {
-                throw new Error('Failed to create blob');
+            // Fast path: try copying the already-rendered image (avoids extra downloads).
+            try {
+                const width = targetImg.naturalWidth || targetImg.width;
+                const height = targetImg.naturalHeight || targetImg.height;
+                await this.canvasToClipboard(targetImg, width, height);
+                return;
+            } catch (error) {
+                // If the image is cross-origin without CORS, the canvas will be tainted and toBlob will fail.
+                if (isUserVisibleError(error)) throw error;
             }
 
-            // Write the blob to system clipboard
-            const item = new ClipboardItem({ [blob.type]: blob });
-            await navigator.clipboard.write([item]);
+            // Fallback path:
+            // - For http(s), fetch via Obsidian (no CORS), then draw from a blob URL.
+            // - For app/local URLs, load and draw normally.
+            if (isHttpUrlString(src)) {
+                const { objectUrl, revoke } = await this.fetchExternalImageAsObjectUrl(src);
+                try {
+                    const img = await this.loadImage(objectUrl);
+                    await this.canvasToClipboard(img, img.naturalWidth || img.width, img.naturalHeight || img.height);
+                } finally {
+                    revoke();
+                }
+                return;
+            }
+
+            const img = await this.loadImage(src, 'anonymous');
+            await this.canvasToClipboard(img, img.naturalWidth || img.width, img.naturalHeight || img.height);
         } catch (error) {
             errorLog('Copy to clipboard failed:', error);
             // Check if it's a focus error and throw a more helpful message

@@ -94,9 +94,10 @@ export class FileService {
      */
     async getImageFileWithErrorHandling(
         img: HTMLImageElement,
-        showNotice = true
+        showNotice = true,
+        activeFileOverride?: TFile
     ): Promise<{ activeFile: TFile; imgFile: TFile } | null> {
-        const activeFile = this.plugin.app.workspace.getActiveFile();
+        const activeFile = activeFileOverride ?? this.plugin.app.workspace.getActiveFile();
         if (!activeFile) {
             return null;
         }

@@ -1,3 +1,5 @@
+import { App, Editor, MarkdownView, TFile } from 'obsidian';
+
 /**
  * Helper to find an image element from an event target
  * @param target - The event target or HTML element
@@ -20,14 +22,64 @@ export function findImageElement(target: EventTarget | null): HTMLImageElement |
 	return null;
 }
 
+export function getImageSourceCandidates(img: HTMLImageElement): string[] {
+	return [
+		img.getAttribute('data-src') ?? '',
+		img.getAttribute('src') ?? '',
+		img.currentSrc ?? '',
+		img.src ?? ''
+	].map((value) => value.trim()).filter(Boolean);
+}
+
+export function getBestHttpImageSource(img: HTMLImageElement): string {
+	const candidates = getImageSourceCandidates(img);
+	return candidates.find((candidate) => isHttpUrlString(candidate)) ?? candidates[0] ?? '';
+}
+
 /**
  * Checks if an image is a remote URL (http/https)
  * @param img - The HTML image element to check
  * @returns True if the image source is a remote URL
  */
 export function isRemoteImage(img: HTMLImageElement): boolean {
-	const src = img.src || '';
-	return src.startsWith('http://') || src.startsWith('https://');
+	return getImageSourceCandidates(img).some((source) => isHttpUrlString(source));
+}
+
+export function isHttpUrlString(value: string): boolean {
+	return /^\s*https?:\/\//i.test(value);
+}
+
+export function isLocalNetworkUrl(value: string): boolean {
+	try {
+		const url = new URL(value);
+		if (!isHttpUrlString(url.href)) return false;
+
+		const host = url.hostname.toLowerCase();
+		if (host === 'localhost' || host.endsWith('.localhost')) return true;
+		if (host.endsWith('.local')) return true;
+
+		// IPv4
+		if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
+			const octets = host.split('.').map((part) => Number(part));
+			if (octets.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return false;
+
+			const [a, b] = octets;
+			if (a === 10) return true; // 10.0.0.0/8
+			if (a === 127) return true; // 127.0.0.0/8 (loopback)
+			if (a === 169 && b === 254) return true; // 169.254.0.0/16 (link-local)
+			if (a === 192 && b === 168) return true; // 192.168.0.0/16
+			if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
+			return false;
+		}
+
+		// IPv6 (common local ranges)
+		if (host === '::1') return true; // loopback
+		if (host.startsWith('fe80:')) return true; // link-local
+		if (host.startsWith('fc') || host.startsWith('fd')) return true; // unique-local fc00::/7
+		return false;
+	} catch {
+		return false;
+	}
 }
 
 /**
@@ -86,6 +138,26 @@ export function findLastObsidianImageSizeParam(
 	for (let index = values.length - 1; index >= 0; index -= 1) {
 		const parsed = parseObsidianImageSizeParam(values[index]);
 		if (parsed) return { index, ...parsed };
+	}
+	return null;
+}
+
+export function findMarkdownViewForElement(app: App, element: HTMLElement): MarkdownView | null {
+	for (const leaf of app.workspace.getLeavesOfType('markdown')) {
+		const view = leaf.view;
+		if (!(view instanceof MarkdownView)) continue;
+		if (view.containerEl.contains(element)) return view;
+	}
+	return null;
+}
+
+export function findMarkdownEditorForFile(app: App, file: TFile): Editor | null {
+	for (const leaf of app.workspace.getLeavesOfType('markdown')) {
+		const view = leaf.view;
+		if (!(view instanceof MarkdownView)) continue;
+		if (!view.file) continue;
+		if (view.file.path !== file.path) continue;
+		return view.editor;
 	}
 	return null;
 }

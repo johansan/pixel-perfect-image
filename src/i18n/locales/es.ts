@@ -46,7 +46,12 @@ export const STRINGS_ES = {
         clickInEditorFirst: 'Por favor, haz clic en el editor primero, luego intenta copiar nuevamente',
         failedToResize: 'Error al redimensionar la imagen',
         failedToPerformAction: 'Error al {action}',
-        
+        imageTooLargeToCopy: 'La imagen es demasiado grande para copiarla al portapapeles',
+        fetchingLocalNetworkImage: 'Obteniendo imagen desde una dirección de red local',
+        failedToFetchExternalImage: 'Error al obtener la imagen externa (HTTP {status})',
+        externalImageNotImage: 'La URL no devolvió una imagen',
+        externalImageFetchTimedOut: 'Tiempo de espera agotado al obtener la imagen externa',
+
         // Generic failure messages
         failedToCopyUrl: 'Error al copiar URL de imagen',
         failedToCopyImage: 'Error al copiar imagen al portapapeles',

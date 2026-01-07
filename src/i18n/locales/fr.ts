@@ -46,7 +46,12 @@ export const STRINGS_FR = {
         clickInEditorFirst: 'Veuillez d\'abord cliquer dans l\'éditeur, puis réessayer de copier',
         failedToResize: 'Échec du redimensionnement de l\'image',
         failedToPerformAction: 'Échec de {action}',
-        
+        imageTooLargeToCopy: 'L\'image est trop grande pour être copiée dans le presse-papiers',
+        fetchingLocalNetworkImage: 'Récupération de l\'image depuis une adresse de réseau local',
+        failedToFetchExternalImage: 'Échec de la récupération de l\'image externe (HTTP {status})',
+        externalImageNotImage: 'L\'URL n\'a pas renvoyé une image',
+        externalImageFetchTimedOut: 'Délai dépassé lors de la récupération de l\'image externe',
+
         // Generic failure messages
         failedToCopyUrl: 'Échec de la copie de l\'URL de l\'image',
         failedToCopyImage: 'Échec de la copie de l\'image dans le presse-papiers',

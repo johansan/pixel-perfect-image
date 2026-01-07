@@ -46,7 +46,12 @@ export const STRINGS_DE = {
         clickInEditorFirst: 'Bitte klicken Sie zuerst in den Editor und versuchen Sie dann erneut zu kopieren',
         failedToResize: 'Größenänderung des Bildes fehlgeschlagen',
         failedToPerformAction: '{action} fehlgeschlagen',
-        
+        imageTooLargeToCopy: 'Bild ist zu groß, um in die Zwischenablage kopiert zu werden',
+        fetchingLocalNetworkImage: 'Bild wird von einer lokalen Netzwerkadresse abgerufen',
+        failedToFetchExternalImage: 'Externes Bild konnte nicht abgerufen werden (HTTP {status})',
+        externalImageNotImage: 'Die URL hat kein Bild zurückgegeben',
+        externalImageFetchTimedOut: 'Zeitüberschreitung beim Abrufen des externen Bildes',
+
         // Generic failure messages
         failedToCopyUrl: 'Kopieren der Bild-URL fehlgeschlagen',
         failedToCopyImage: 'Kopieren des Bildes in Zwischenablage fehlgeschlagen',

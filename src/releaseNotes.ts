@@ -33,10 +33,13 @@ export interface ReleaseNote {
 const RELEASE_NOTES: ReleaseNote[] = [
 	{
 		version: '1.0.24',
-		date: '2026-01-06',
+		date: '2026-01-07',
 		showOnUpdate: true,
-		new: [],
-		improved: ['Finally fixed image resizing on mobile trackpads. Try it out and see how it works for you!'],
+		new: ['External images can now be copied to the clipboard.',
+			'External images can now be resized like local images.'
+		],
+		improved: ['==Finally fixed image resizing on mobile trackpads==! 🎉 Give it a go and let me know if it works for you!'
+		],
 		changed: [],
 		fixed: []
 	},

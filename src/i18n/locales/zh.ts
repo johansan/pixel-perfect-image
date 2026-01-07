@@ -46,7 +46,12 @@ export const STRINGS_ZH = {
         clickInEditorFirst: '请先点击编辑器，然后再次尝试复制',
         failedToResize: '调整图像大小失败',
         failedToPerformAction: '{action}失败',
-        
+        imageTooLargeToCopy: '图像太大，无法复制到剪贴板',
+        fetchingLocalNetworkImage: '正在从本地网络地址获取图像',
+        failedToFetchExternalImage: '获取外部图像失败（HTTP {status}）',
+        externalImageNotImage: 'URL 未返回图像',
+        externalImageFetchTimedOut: '获取外部图像超时',
+
         // Generic failure messages
         failedToCopyUrl: '复制图像URL失败',
         failedToCopyImage: '复制图像到剪贴板失败',

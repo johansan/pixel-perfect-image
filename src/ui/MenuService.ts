@@ -1,9 +1,10 @@
 import { FileSystemAdapter, Menu, Notice, Platform, normalizePath, MarkdownView, TFile } from 'obsidian';
 import type PixelPerfectImage from '../main';
-import { findImageElement, errorLog, findLastObsidianImageSizeParam, isRemoteImage, isUserVisibleError } from '../utils/utils';
+import { findImageElement, errorLog, findLastObsidianImageSizeParam, getBestHttpImageSource, getImageSourceCandidates, isRemoteImage, isUserVisibleError } from '../utils/utils';
 import { getExternalEditorPath, parseResizeSize } from './settings';
 import { join } from 'path';
 import { strings } from '../i18n';
+import { findMarkdownViewForElement } from '../utils/utils';
 
 /**
  * Service for managing context menus and menu interactions
@@ -13,6 +14,10 @@ export class MenuService {
     
     constructor(plugin: PixelPerfectImage) {
         this.plugin = plugin;
+    }
+
+    private getRemoteImageUrlForLinkMatching(img: HTMLImageElement): string {
+        return getBestHttpImageSource(img);
     }
 
     private getRasterNaturalDimensions(img: HTMLImageElement): { width: number; height: number } | null {
@@ -40,13 +45,7 @@ export class MenuService {
     }
 
     private isSvgBySrc(img: HTMLImageElement): boolean {
-        const sources = [
-            img.getAttribute('src') ?? '',
-            img.currentSrc ?? '',
-            img.src ?? ''
-        ];
-
-        return sources.some((source) => this.isSvgUrl(source));
+        return getImageSourceCandidates(img).some((source) => this.isSvgUrl(source));
     }
 
     private parseWidthFromImageAlt(img: HTMLImageElement): number | null {
@@ -151,13 +150,15 @@ export class MenuService {
     async handleContextMenu(ev: MouseEvent | TouchEvent) {
         // For touch events, ignore multi-touch to prevent triggering during pinch zoom
         if ('touches' in ev && ev.touches.length > 1) return;
-
-        // Only show menu when the active view is a markdown document
-        const markdownView = this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
-        if (!markdownView) return;
         
         const img = findImageElement(ev.target);
         if (!img) return;
+
+        // Resolve the markdown view that owns this image element (supports multiple panes).
+        const markdownView =
+            findMarkdownViewForElement(this.plugin.app, img)
+            ?? this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!markdownView) return;
 
         // Prevent default context menu
         ev.preventDefault();
@@ -170,7 +171,7 @@ export class MenuService {
         if (isRemote) {
             const activeFile = markdownView.file;
             if (!activeFile) return;
-            const imageUrl = img.currentSrc || img.src;
+            const imageUrl = this.getRemoteImageUrlForLinkMatching(img);
 
             // For remote images, show indicator and limited options
             this.addInfoMenuItem(menu, strings.menu.remoteImage, 'globe');
@@ -184,7 +185,8 @@ export class MenuService {
                 strings.menu.copyImageUrl,
                 'link',
                 async () => {
-                    await navigator.clipboard.writeText(img.src);
+                    const urlToCopy = this.getRemoteImageUrlForLinkMatching(img);
+                    await navigator.clipboard.writeText(urlToCopy);
                     new Notice(strings.notices.imageUrlCopied);
                 },
                 strings.notices.failedToCopyUrl
@@ -194,7 +196,10 @@ export class MenuService {
             menu.addSeparator();
             await this.addRemoteResizeMenuItems(menu, img, activeFile, imageUrl);
         } else {
-            const resolvedImage = await this.plugin.fileService.getImageFileWithErrorHandling(img);
+            const activeFile = markdownView.file;
+            const resolvedImage = activeFile
+                ? await this.plugin.fileService.getImageFileWithErrorHandling(img, true, activeFile)
+                : await this.plugin.fileService.getImageFileWithErrorHandling(img);
             const currentWidth = resolvedImage
                 ? this.plugin.imageService.getCurrentImageWidth(resolvedImage.activeFile, resolvedImage.imgFile)
                 : null;
@@ -446,7 +451,7 @@ export class MenuService {
                     menu,
                     label,
                     icon,
-                    () => this.plugin.imageService.resizeImage(img, value, !isPercentage),
+                    () => this.plugin.imageService.resizeImage(img, value, !isPercentage, result.activeFile),
                     strings.notices.failedToResizeTo.replace('{size}', sizeStr),
                     disabled
                 );
