@@ -32,6 +32,15 @@ export interface ReleaseNote {
  */
 const RELEASE_NOTES: ReleaseNote[] = [
 	{
+		version: '1.0.25',
+		date: '2026-03-19',
+		showOnUpdate: true,
+		new: [],
+		improved: [],
+		changed: [],
+		fixed: ['Fixed duplicate context menus on images in Obsidian 1.12 and later.']
+	},
+	{
 		version: '1.0.24',
 		date: '2026-01-07',
 		showOnUpdate: true,

@@ -11,13 +11,10 @@ export function findImageElement(target: EventTarget | null): HTMLImageElement |
 	// If target is already an image, return it
 	if (target instanceof HTMLImageElement) return target;
 	
-	// Check if the target or its ancestors are related to images
-	const isImageContext = target.matches('.image-container, .image-embed, img, a.internal-embed[src*=".png"], a.internal-embed[src*=".jpg"], a.internal-embed[src*=".jpeg"], a.internal-embed[src*=".gif"], a.internal-embed[src*=".webp"], a.internal-embed[src*=".svg"]'); 
-	
-	// Only search for img elements if we're in an image context
-	if (isImageContext) {
-		return target.querySelector('img');
-	}
+	const imageContext = target.closest(
+		'.image-container, .image-embed, a.internal-embed[src*=".png"], a.internal-embed[src*=".jpg"], a.internal-embed[src*=".jpeg"], a.internal-embed[src*=".gif"], a.internal-embed[src*=".webp"], a.internal-embed[src*=".svg"]'
+	);
+	if (imageContext) return imageContext.querySelector('img');
 	
 	return null;
 }

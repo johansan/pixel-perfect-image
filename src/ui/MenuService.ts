@@ -160,17 +160,21 @@ export class MenuService {
             ?? this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
         if (!markdownView) return;
 
-        // Prevent default context menu
-        ev.preventDefault();
-
         const menu = new Menu();
         
         // Check if this is a remote image
         const isRemote = isRemoteImage(img);
+        const activeFile = markdownView.file;
+
+        if (isRemote && !activeFile) return;
+
+        // Suppress the native image menu once we've confirmed PPI will handle the event.
+        ev.preventDefault();
+        ev.stopPropagation();
         
         if (isRemote) {
-            const activeFile = markdownView.file;
-            if (!activeFile) return;
+            const remoteActiveFile = activeFile;
+            if (!remoteActiveFile) return;
             const imageUrl = this.getRemoteImageUrlForLinkMatching(img);
 
             // For remote images, show indicator and limited options
@@ -194,9 +198,8 @@ export class MenuService {
 
             // Resize options for remote images (updates markdown link by URL)
             menu.addSeparator();
-            await this.addRemoteResizeMenuItems(menu, img, activeFile, imageUrl);
+            await this.addRemoteResizeMenuItems(menu, img, remoteActiveFile, imageUrl);
         } else {
-            const activeFile = markdownView.file;
             const resolvedImage = activeFile
                 ? await this.plugin.fileService.getImageFileWithErrorHandling(img, true, activeFile)
                 : await this.plugin.fileService.getImageFileWithErrorHandling(img);
@@ -214,10 +217,14 @@ export class MenuService {
             }
         }
 
-        // Position menu at event coordinates
+        if (ev instanceof MouseEvent) {
+            menu.showAtMouseEvent(ev);
+            return;
+        }
+
         const position = {
-            x: ev instanceof MouseEvent ? ev.pageX : ev.touches[0].pageX,
-            y: ev instanceof MouseEvent ? ev.pageY : ev.touches[0].pageY
+            x: ev.touches[0].pageX,
+            y: ev.touches[0].pageY
         };
         menu.showAtPosition(position);
     }
