@@ -25,26 +25,202 @@ export class FileService {
      */
     getFileForImage(img: HTMLImageElement, activeFile: TFile): TFile | null {
         const src = img.getAttribute('src') ?? "";
-        let wikiLink = img.getAttribute('alt'); // e.g., "MyImage.png|200"
+        const wikiLink = img.getAttribute('alt'); // e.g., "MyImage.png|200"
+        const embedLinkPath = this.getEmbedLinkPath(img);
+        const normalizedAltLink = this.normalizeLinkCandidate(wikiLink, false);
+        const srcLinkPath = this.parseFileNameFromSrc(src);
+        const basenameCandidate = this.getBaseName(srcLinkPath) ?? this.getBaseName(normalizedAltLink);
 
-        // For Markdown-style images, try to parse the src attribute:
-        const srcFileName = this.parseFileNameFromSrc(src);
-        if (srcFileName) {
-            const fileFromSrc = this.plugin.linkService.resolveLink(srcFileName, activeFile);
+        if (embedLinkPath) {
+            const fileFromEmbed = this.plugin.linkService.resolveLink(embedLinkPath, activeFile);
+            if (fileFromEmbed) {
+                return fileFromEmbed;
+            }
+        }
+
+        const directAltLink = this.getPathQualifiedLink(normalizedAltLink);
+        if (directAltLink) {
+            const fileFromAlt = this.plugin.linkService.resolveLink(directAltLink, activeFile);
+            if (fileFromAlt) {
+                return fileFromAlt;
+            }
+        }
+
+        const directSrcLink = this.getPathQualifiedLink(srcLinkPath);
+        if (directSrcLink) {
+            const fileFromSrc = this.plugin.linkService.resolveLink(directSrcLink, activeFile);
             if (fileFromSrc) {
                 return fileFromSrc;
             }
         }
 
-        // For wiki-style images (Obsidian puts "MyImage.png|width" in alt)
-        if (wikiLink) {
-            wikiLink = wikiLink.split("|")[0].trim();
-            const fileFromLink = this.plugin.linkService.resolveLink(wikiLink, activeFile);
-            if (fileFromLink) {
-                return fileFromLink;
+        if (basenameCandidate) {
+            const fileFromNoteCache = this.getFileFromNoteEmbedCache(activeFile, basenameCandidate);
+            if (fileFromNoteCache.ambiguous) {
+                return null;
+            }
+            if (fileFromNoteCache.file) {
+                return fileFromNoteCache.file;
+            }
+            if (fileFromNoteCache.cacheAvailable) {
+                const uniqueVaultFile = this.getUniqueVaultFileByBaseName(basenameCandidate);
+                if (uniqueVaultFile.ambiguous) {
+                    return null;
+                }
+                if (uniqueVaultFile.file) {
+                    return uniqueVaultFile.file;
+                }
+                return null;
             }
         }
+
+        const fileFromAlt = this.getFileFromBaseNameLink(normalizedAltLink, activeFile, basenameCandidate);
+        if (fileFromAlt) {
+            return fileFromAlt;
+        }
+
+        if (srcLinkPath) {
+            const fileFromSrc = this.getFileFromBaseNameLink(srcLinkPath, activeFile, basenameCandidate);
+            if (fileFromSrc) {
+                return fileFromSrc;
+            }
+        }
+
         return null;
+    }
+
+    private getEmbedLinkPath(img: HTMLImageElement): string | null {
+        const container = img.closest('.internal-embed, .image-embed, .image-container');
+        const candidates = [
+            container?.getAttribute('src') ?? null,
+            container?.getAttribute('data-src') ?? null,
+            container?.getAttribute('data-href') ?? null,
+            container?.getAttribute('data-path') ?? null,
+            container?.getAttribute('href') ?? null,
+            img.getAttribute('src'),
+            img.getAttribute('data-src'),
+            img.getAttribute('data-href'),
+            img.getAttribute('data-path')
+        ];
+
+        for (const candidate of candidates) {
+            const normalized = this.normalizeLinkCandidate(candidate, true);
+            if (normalized) return normalized;
+        }
+
+        return null;
+    }
+
+    private getFileFromNoteEmbedCache(
+        activeFile: TFile,
+        srcBaseName: string
+    ): { file: TFile | null; ambiguous: boolean; cacheAvailable: boolean } {
+        const cache = this.plugin.app.metadataCache.getFileCache(activeFile);
+        if (!cache) {
+            return { file: null, ambiguous: false, cacheAvailable: false };
+        }
+
+        const embeds = cache.embeds ?? [];
+        let match: TFile | null = null;
+
+        for (const embed of embeds) {
+            const normalizedLink = this.normalizeLinkCandidate(embed.link, false);
+            if (!normalizedLink) continue;
+            if (this.getBaseName(normalizedLink) !== srcBaseName) continue;
+
+            const resolvedFile = this.plugin.linkService.resolveLink(normalizedLink, activeFile);
+            if (!resolvedFile) continue;
+
+            if (match && match.path !== resolvedFile.path) {
+                return { file: null, ambiguous: true, cacheAvailable: true };
+            }
+            match = resolvedFile;
+        }
+
+        return { file: match, ambiguous: false, cacheAvailable: true };
+    }
+
+    private getUniqueVaultFileByBaseName(baseName: string): { file: TFile | null; ambiguous: boolean } {
+        let match: TFile | null = null;
+
+        for (const file of this.plugin.app.vault.getFiles()) {
+            if (file.name !== baseName) continue;
+
+            if (match) {
+                return { file: null, ambiguous: true };
+            }
+
+            match = file;
+        }
+
+        return { file: match, ambiguous: false };
+    }
+
+    private getFileFromBaseNameLink(value: string | null, activeFile: TFile, expectedBaseName: string | null): TFile | null {
+        if (!value || value.includes('/')) return null;
+        if (!expectedBaseName) {
+            if (!this.looksLikeVaultFileName(value)) return null;
+        } else if (value !== expectedBaseName) {
+            return null;
+        }
+
+        const resolvedFile = this.plugin.linkService.resolveLink(value, activeFile);
+        if (!resolvedFile) return null;
+
+        return !expectedBaseName || resolvedFile.name === expectedBaseName ? resolvedFile : null;
+    }
+
+    private normalizeLinkCandidate(value: string | null, allowUrlFallback: boolean): string | null {
+        if (!value) return null;
+
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+
+        const baseValue = trimmed.split("|")[0].trim();
+        if (!baseValue) return null;
+
+        if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(baseValue)) {
+            if (!allowUrlFallback) return null;
+            const parsedFromUrl = this.parseFileNameFromSrc(baseValue);
+            return parsedFromUrl?.includes('/') ? parsedFromUrl : null;
+        }
+
+        const withoutQueryOrHash = this.stripQueryAndHash(baseValue);
+        if (!withoutQueryOrHash) return null;
+
+        const decoded = safeDecodeURIComponent(withoutQueryOrHash);
+        if (!decoded) return null;
+
+        if (this.isAbsoluteLocalPath(decoded)) {
+            return null;
+        }
+
+        return decoded;
+    }
+
+    private getPathQualifiedLink(value: string | null): string | null {
+        if (!value || !value.includes('/')) return null;
+        return value;
+    }
+
+    private getBaseName(value: string | null): string | null {
+        if (!value) return null;
+        const slashIdx = value.lastIndexOf('/');
+        return slashIdx >= 0 ? value.substring(slashIdx + 1) : value;
+    }
+
+    private looksLikeVaultFileName(value: string): boolean {
+        const trimmed = value.trim();
+        if (!trimmed) return false;
+        return /\.[a-zA-Z0-9]{2,8}$/.test(trimmed);
+    }
+
+    private stripQueryAndHash(value: string): string {
+        return value.split(/[?#]/, 1)[0] ?? '';
+    }
+
+    private isAbsoluteLocalPath(value: string): boolean {
+        return value.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(value);
     }
 
     /**
@@ -58,7 +234,7 @@ export class FileService {
         if (!trimmed) return null;
 
         // Strip query/hash first so we don't treat them as part of the file path.
-        const [withoutQueryOrHash] = trimmed.split(/[?#]/, 1);
+        const withoutQueryOrHash = this.stripQueryAndHash(trimmed);
         if (!withoutQueryOrHash) return null;
 
         // Obsidian often encodes the vault-relative path (including folder separators) into the last URL segment.
@@ -72,11 +248,7 @@ export class FileService {
             // If it's not a URL, it might already be a vault-relative path like "Images/my image.png".
             const decoded = safeDecodeURIComponent(withoutQueryOrHash);
 
-            const looksAbsolute =
-                decoded.startsWith('/') ||
-                /^[a-zA-Z]:[\\/]/.test(decoded);
-
-            if (!looksAbsolute && decoded.includes('/')) {
+            if (!this.isAbsoluteLocalPath(decoded) && decoded.includes('/')) {
                 return decoded;
             }
 
