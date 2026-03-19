@@ -143,9 +143,14 @@ export function findMarkdownViewForElement(app: App, element: HTMLElement): Mark
 	for (const leaf of app.workspace.getLeavesOfType('markdown')) {
 		const view = leaf.view;
 		if (!(view instanceof MarkdownView)) continue;
-		if (view.containerEl.contains(element)) return view;
+		if (!view.file) continue;
+		if (view.contentEl.contains(element)) return view;
 	}
 	return null;
+}
+
+export function findMarkdownFileForElement(app: App, element: HTMLElement): TFile | null {
+	return findMarkdownViewForElement(app, element)?.file ?? null;
 }
 
 export function findMarkdownEditorForFile(app: App, file: TFile): Editor | null {

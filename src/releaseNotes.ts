@@ -40,7 +40,8 @@ const RELEASE_NOTES: ReleaseNote[] = [
 		changed: [],
 		fixed: [
 			'Fixed duplicate context menus on images in Obsidian 1.12 and later.',
-			'Fixed local file actions opening the wrong image when multiple folders contain the same filename.'
+			'Fixed local file actions opening the wrong image when multiple folders contain the same filename.',
+			'Fixed so that clicks in plugin windows no longer trigger Pixel Perfect Image actions.'
 		]
 	},
 	{

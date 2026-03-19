@@ -1,4 +1,4 @@
-import { FileSystemAdapter, Menu, Notice, Platform, normalizePath, MarkdownView, TFile } from 'obsidian';
+import { FileSystemAdapter, Menu, Notice, Platform, normalizePath, TFile } from 'obsidian';
 import type PixelPerfectImage from '../main';
 import { findImageElement, errorLog, findLastObsidianImageSizeParam, getBestHttpImageSource, getImageSourceCandidates, isRemoteImage, isUserVisibleError } from '../utils/utils';
 import { getExternalEditorPath, parseResizeSize } from './settings';
@@ -155,9 +155,7 @@ export class MenuService {
         if (!img) return;
 
         // Resolve the markdown view that owns this image element (supports multiple panes).
-        const markdownView =
-            findMarkdownViewForElement(this.plugin.app, img)
-            ?? this.plugin.app.workspace.getActiveViewOfType(MarkdownView);
+        const markdownView = findMarkdownViewForElement(this.plugin.app, img);
         if (!markdownView) return;
 
         const menu = new Menu();
@@ -261,7 +259,7 @@ export class MenuService {
         try {
             const result = resolvedImage !== undefined
                 ? resolvedImage
-                : await this.plugin.fileService.getImageFileWithErrorHandling(img);
+                : null;
             if (!result) return;
 
             const isSvg = result.imgFile.extension.toLowerCase() === 'svg' || this.isSvgBySrc(img);
@@ -369,7 +367,7 @@ export class MenuService {
         // Get current scale and file info
         const result = resolvedImage !== undefined
             ? resolvedImage
-            : await this.plugin.fileService.getImageFileWithErrorHandling(img);
+            : null;
         let currentScale: number | null = null;
         const customWidth = currentWidth !== undefined
             ? currentWidth

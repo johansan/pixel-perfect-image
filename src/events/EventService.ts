@@ -1,6 +1,6 @@
-import { Notice, MarkdownView, TFile } from 'obsidian';
+import { Notice, TFile } from 'obsidian';
 import type PixelPerfectImage from '../main';
-import { findImageElement, errorLog, findLastObsidianImageSizeParam, isRemoteImage } from '../utils/utils';
+import { findImageElement, errorLog, findLastObsidianImageSizeParam, findMarkdownFileForElement, isRemoteImage } from '../utils/utils';
 import { strings } from '../i18n';
 import { DEFAULT_EXTERNAL_IMAGE_FALLBACK_WIDTH_PX } from '../utils/constants';
 
@@ -176,13 +176,7 @@ export class EventService {
 	private getMarkdownFileForElement(element: HTMLElement): TFile | null {
 		// Map a rendered DOM element back to the markdown file that owns it.
 		// This avoids relying on "active file", which may not match the pane being scrolled.
-		for (const leaf of this.plugin.app.workspace.getLeavesOfType('markdown')) {
-			const view = leaf.view;
-			if (!(view instanceof MarkdownView)) continue;
-			if (!view.file) continue;
-			if (view.containerEl.contains(element)) return view.file;
-		}
-		return null;
+		return findMarkdownFileForElement(this.plugin.app, element);
 	}
 
 	private getWheelWidthCacheKey(activeFile: TFile, target: WheelImageTarget): string {
@@ -417,6 +411,9 @@ export class EventService {
 		const img = findImageElement(ev.target);
 		if (!img) return;
 
+		const activeFile = this.getMarkdownFileForElement(img);
+		if (!activeFile) return;
+
 		// If behavior is set to 'do-nothing', return early
 		if (this.plugin.settings.cmdCtrlClickBehavior === 'do-nothing') {
 			return;
@@ -426,7 +423,7 @@ export class EventService {
 		ev.preventDefault();
 
 		// Get the image file and perform the configured action
-		this.plugin.fileService.getImageFileWithErrorHandling(img)
+		this.plugin.fileService.getImageFileWithErrorHandling(img, true, activeFile)
 			.then((result: { activeFile: TFile; imgFile: TFile } | null) => {
 				if (result) {
 					if (this.plugin.settings.cmdCtrlClickBehavior === 'open-in-new-tab') {
