@@ -5,6 +5,23 @@ import { errorLog, safeDecodeURIComponent } from '../utils/utils';
 import { getExternalEditorPath } from '../ui/settings';
 import { strings } from '../i18n';
 
+interface DetachedChildProcess {
+    on(event: 'error', listener: (error: Error) => void): void;
+    unref(): void;
+}
+
+interface ChildProcessModule {
+    spawn(
+        command: string,
+        args: string[],
+        options: { detached: boolean; stdio: 'ignore'; shell?: boolean }
+    ): DetachedChildProcess;
+}
+
+interface WindowWithRequire {
+    require(moduleName: string): unknown;
+}
+
 /**
  * Service for handling file operations like resolving image files, file system operations, and file manipulation
  */
@@ -304,7 +321,7 @@ export class FileService {
      * @param filePath - The file path to open
      */
     async openInExternalEditor(filePath: string): Promise<void> {
-        if (!Platform.isDesktop) return;
+        if (!Platform.isDesktopApp) return;
 
         const editorPath = getExternalEditorPath(this.plugin.settings);
         const editorName = this.plugin.settings.externalEditorName.trim() || "External Editor";
@@ -322,24 +339,28 @@ export class FileService {
         const absoluteFilePath = adapter.getFullPath(normalizePath(filePath));
 
         try {
-            const { spawn } = await import('node:child_process');
+            const childProcessModule = this.getChildProcessModule();
+            if (!childProcessModule) {
+                throw new Error('Node.js child process module is unavailable.');
+            }
+
             let child;
             if (Platform.isMacOS) {
                 // macOS: use the system opener with the specified app
-                child = spawn('open', ['-a', editorPath, absoluteFilePath], {
+                child = childProcessModule.spawn('open', ['-a', editorPath, absoluteFilePath], {
                     detached: true,
                     stdio: 'ignore'
                 });
             } else if (Platform.isWin) {
                 // Windows: launch editor executable directly
-                child = spawn(editorPath, [absoluteFilePath], {
+                child = childProcessModule.spawn(editorPath, [absoluteFilePath], {
                     detached: true,
                     stdio: 'ignore',
                     shell: false
                 });
             } else {
                 // Other desktop platforms (best-effort): try launching editorPath
-                child = spawn(editorPath, [absoluteFilePath], {
+                child = childProcessModule.spawn(editorPath, [absoluteFilePath], {
                     detached: true,
                     stdio: 'ignore',
                     shell: false
@@ -356,6 +377,45 @@ export class FileService {
             errorLog(`Error launching ${editorName}:`, error);
             new Notice(strings.notices.couldNotOpenInEditor.replace('{editor}', editorName));
         }
+    }
+
+    /** Returns the Node.js child process module when available in the desktop runtime */
+    private getChildProcessModule(): ChildProcessModule | null {
+        if (!Platform.isDesktopApp || typeof window === 'undefined') {
+            return null;
+        }
+
+        const runtimeWindow: unknown = window;
+        if (!this.hasWindowRequire(runtimeWindow)) {
+            return null;
+        }
+
+        try {
+            const childProcessModule = runtimeWindow.require('node:child_process');
+            return this.hasChildProcessModule(childProcessModule) ? childProcessModule : null;
+        } catch {
+            return null;
+        }
+    }
+
+    /** Type guard checking if the runtime window exposes CommonJS require */
+    private hasWindowRequire(value: unknown): value is WindowWithRequire {
+        if (typeof value !== 'object' || value === null) {
+            return false;
+        }
+
+        const requireFn: unknown = Reflect.get(value, 'require');
+        return typeof requireFn === 'function';
+    }
+
+    /** Type guard checking if a value exposes the child process methods used by the plugin */
+    private hasChildProcessModule(value: unknown): value is ChildProcessModule {
+        if (typeof value !== 'object' || value === null) {
+            return false;
+        }
+
+        const spawn: unknown = Reflect.get(value, 'spawn');
+        return typeof spawn === 'function';
     }
 
     /**

@@ -32,6 +32,15 @@ export interface ReleaseNote {
  */
 const RELEASE_NOTES: ReleaseNote[] = [
 	{
+		version: '1.0.27',
+		date: '2026-07-13',
+		showOnUpdate: true,
+		new: [],
+		improved: [],
+		changed: [],
+		fixed: ['Fixed issues identified during the Obsidian Community Plugin review process.']
+	},
+	{
 		version: '1.0.26',
 		date: '2026-07-13',
 		showOnUpdate: true,
