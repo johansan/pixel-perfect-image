@@ -32,6 +32,18 @@ export interface ReleaseNote {
  */
 const RELEASE_NOTES: ReleaseNote[] = [
 	{
+		version: '1.0.26',
+		date: '2026-07-13',
+		showOnUpdate: true,
+		new: [],
+		improved: ['Settings are now indexed by Obsidian settings search on Obsidian 1.13 and later.'],
+		changed: ['The minimum supported Obsidian version is now 1.11.0.'],
+		fixed: [
+			'Updated timer and canvas handling for pop-out windows.',
+			'Restored CMD/CTRL-click actions for images in Canvas, including opening images in an external editor.'
+		]
+	},
+	{
 		version: '1.0.25',
 		date: '2026-03-19',
 		showOnUpdate: true,

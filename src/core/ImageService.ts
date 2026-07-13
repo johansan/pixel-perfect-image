@@ -23,15 +23,15 @@ export class ImageService {
     }
 
     private async withTimeout<T>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string): Promise<T> {
-        let timeoutId: ReturnType<typeof setTimeout> | null = null;
+        let timeoutId: number | null = null;
         const timeoutPromise = new Promise<never>((_resolve, reject) => {
-            timeoutId = setTimeout(() => reject(createUserVisibleError(timeoutMessage)), timeoutMs);
+            timeoutId = window.setTimeout(() => reject(createUserVisibleError(timeoutMessage)), timeoutMs);
         });
 
         try {
             return await Promise.race([promise, timeoutPromise]);
         } finally {
-            if (timeoutId) clearTimeout(timeoutId);
+            if (timeoutId) window.clearTimeout(timeoutId);
         }
     }
 
@@ -58,7 +58,7 @@ export class ImageService {
     private async canvasToClipboard(source: CanvasImageSource, width: number, height: number): Promise<void> {
         this.assertCopySizeOk(width, height);
 
-        const canvas = document.createElement('canvas');
+        const canvas = createEl('canvas');
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
@@ -289,7 +289,10 @@ export class ImageService {
         })();
 
         this.externalImageFetchInFlight.set(url, fetchPromise);
-        fetchPromise.finally(() => this.externalImageFetchInFlight.delete(url));
+        void fetchPromise.then(
+            () => this.externalImageFetchInFlight.delete(url),
+            () => this.externalImageFetchInFlight.delete(url)
+        );
         return fetchPromise;
     }
 
@@ -306,7 +309,7 @@ export class ImageService {
     private setDimensionCache(path: string, dimensions: { width: number; height: number }) {
         this.dimensionCache.set(path, dimensions);
         if (this.dimensionCache.size <= ImageService.DIMENSION_CACHE_MAX_ENTRIES) return;
-        const oldestKey = this.dimensionCache.keys().next().value as string | undefined;
+        const oldestKey = this.dimensionCache.keys().next().value;
         if (oldestKey) this.dimensionCache.delete(oldestKey);
     }
 

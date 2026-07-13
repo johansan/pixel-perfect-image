@@ -12,7 +12,7 @@ import { FileService } from './core/FileService';
 import './utils/types';
 
 export default class PixelPerfectImage extends Plugin {
-	settings: PixelPerfectImageSettings;
+	settings!: PixelPerfectImageSettings;
 	private hasStoredData = false;
 	private settingsSaveQueue: Promise<void> = Promise.resolve();
 	private settingsSaveDebounceTimer: number | null = null;
@@ -21,11 +21,11 @@ export default class PixelPerfectImage extends Plugin {
 	private settingsSaveDebouncedReject: ((error: unknown) => void) | null = null;
 	
 	// Services
-	eventService: EventService;
-	menuService: MenuService;
-	imageService: ImageService;
-	linkService: LinkService;
-	fileService: FileService;
+	eventService!: EventService;
+	menuService!: MenuService;
+	imageService!: ImageService;
+	linkService!: LinkService;
+	fileService!: FileService;
 
 	async onload() {
 		await this.loadSettings();
@@ -50,6 +50,7 @@ export default class PixelPerfectImage extends Plugin {
 	onunload() {
 		// Cleanup services
 		this.eventService.cleanup();
+		this.menuService.cleanup();
 		this.imageService.clearDimensionCache();
 		if (this.settingsSaveDebounceTimer !== null) {
 			window.clearTimeout(this.settingsSaveDebounceTimer);
@@ -160,7 +161,7 @@ export default class PixelPerfectImage extends Plugin {
 				: getLatestReleaseNotes();
 
 		new WhatsNewModal(this.app, releaseNotes, () => {
-			setTimeout(() => {
+			window.setTimeout(() => {
 				this.settings.lastShownVersion = currentVersion;
 				void this.saveSettings();
 			}, 1000);

@@ -50,14 +50,6 @@
   display: none;
 }
 
-/* Make delete menu items red (items with trash icon) */
-.menu-item:has(.menu-item-icon svg.lucide-trash) {
-  color: var(--text-error);
-}
-.menu-item:has(.menu-item-icon svg.lucide-trash) .menu-item-icon {
-  color: var(--text-error);
-}
-
 /* ========================================================================
    What's New Modal
    ======================================================================== */
@@ -110,7 +102,7 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--text-normal);
-  margin: 0 0 4px 0;
+  margin: 0 0 4px;
 }
 
 /* Feature list */

@@ -197,7 +197,7 @@ export class LinkService {
      */
     updateLinks(text: string, activeFile: TFile, imageFile: TFile, transform: (params: string[]) => string[]): string {
         // Handle wiki-style links (![[image.png|100]])
-        text = text.replace(WIKILINK_IMAGE_REGEX, (match, linkInner) => {
+        text = text.replace(WIKILINK_IMAGE_REGEX, (match: string, linkInner: string) => {
             // Parse the link components (path, hash, params)
             const link = this.parseLinkComponents(linkInner);
             
@@ -505,7 +505,7 @@ export class LinkService {
                 let replacedText = content;
 
                 // Remove wiki-style links (![[image.png|100]])
-                replacedText = replacedText.replace(WIKILINK_IMAGE_REGEX, (match, linkInner) => {
+                replacedText = replacedText.replace(WIKILINK_IMAGE_REGEX, (match: string, linkInner: string) => {
                     const link = this.parseLinkComponents(linkInner);
                     return this.resolveLink(link.path, activeFile, imageFile) ? '' : match;
                 });

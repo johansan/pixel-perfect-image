@@ -9,7 +9,7 @@ const releaseNotesPath = path.join(__dirname, '..', 'src', 'releaseNotes.ts');
 const content = fs.readFileSync(releaseNotesPath, 'utf8');
 
 // Find the RELEASE_NOTES array declaration
-const releaseNotesMatch = content.match(/const RELEASE_NOTES.*?=\s*(\[[\s\S]*?\n\]);/);
+const releaseNotesMatch = content.match(/(?:export\s+)?const\s+RELEASE_NOTES[\s\S]*?=\s*(\[[\s\S]*?\]);/);
 if (!releaseNotesMatch) {
 	console.error('Could not find RELEASE_NOTES in file');
 	process.exit(1);
@@ -31,38 +31,33 @@ if (!releases || releases.length === 0) {
 	process.exit(1);
 }
 
-// Get the first (latest) release
-const release = releases[0];
+// Allow selecting a specific version (e.g. CI can pass the tag version)
+const versionArg = process.argv.slice(2).find(arg => arg && !arg.startsWith('-'));
+const normalizedVersion = versionArg ? versionArg.replace(/^v/, '') : null;
+
+// Get the requested release, or default to the first (latest)
+const release = normalizedVersion ? releases.find(entry => entry && entry.version === normalizedVersion) : releases[0];
+
+if (!release) {
+	console.error(`No release notes found for version: ${normalizedVersion}`);
+	process.exit(1);
+}
 
 // Helper function to convert == to **
 const convertMarkdown = text => text.replace(/==/g, '**');
 
-// Print optional info section if present
+const printSection = (title, items) => {
+	if (!items || items.length === 0) return;
+	console.log(`### ${title}\n`);
+	items.forEach(item => console.log(`- ${convertMarkdown(item)}`));
+	console.log();
+};
+
 if (release.info) {
 	console.log(`${convertMarkdown(release.info)}\n`);
 }
 
-// Print each section if it has content
-if (release.new && release.new.length > 0) {
-	console.log('### New\n');
-	release.new.forEach(item => console.log(`- ${convertMarkdown(item)}`));
-	console.log();
-}
-
-if (release.improved && release.improved.length > 0) {
-	console.log('### Improved\n');
-	release.improved.forEach(item => console.log(`- ${convertMarkdown(item)}`));
-	console.log();
-}
-
-if (release.changed && release.changed.length > 0) {
-	console.log('### Changed\n');
-	release.changed.forEach(item => console.log(`- ${convertMarkdown(item)}`));
-	console.log();
-}
-
-if (release.fixed && release.fixed.length > 0) {
-	console.log('### Fixed\n');
-	release.fixed.forEach(item => console.log(`- ${convertMarkdown(item)}`));
-	console.log();
-}
+printSection('New', release.new);
+printSection('Improved', release.improved);
+printSection('Changed', release.changed);
+printSection('Fixed', release.fixed);

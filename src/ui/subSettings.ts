@@ -7,8 +7,7 @@ export function setElementVisible(element: HTMLElement, visible: boolean): void 
 }
 
 export function createSubSettingsContainer(parentSetting: Setting, cls = 'pixel-perfect-sub-settings'): HTMLDivElement {
-	const container = parentSetting.settingEl.ownerDocument.createElement('div');
-	container.className = cls;
+	const container = parentSetting.settingEl.createDiv({ cls });
 	parentSetting.settingEl.after(container);
 	return container;
 }

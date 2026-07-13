@@ -1,7 +1,5 @@
 import { TFile, Notice, FileSystemAdapter, Platform, normalizePath } from 'obsidian';
 import type PixelPerfectImage from '../main';
-import { join } from 'path';
-import { spawn } from "child_process";
 import { FileNameInputModal, DeleteConfirmationModal } from '../ui/modals';
 import { errorLog, safeDecodeURIComponent } from '../utils/utils';
 import { getExternalEditorPath } from '../ui/settings';
@@ -305,7 +303,9 @@ export class FileService {
      * Opens a file in an external editor
      * @param filePath - The file path to open
      */
-    openInExternalEditor(filePath: string) {
+    async openInExternalEditor(filePath: string): Promise<void> {
+        if (!Platform.isDesktop) return;
+
         const editorPath = getExternalEditorPath(this.plugin.settings);
         const editorName = this.plugin.settings.externalEditorName.trim() || "External Editor";
         if (!editorPath) {
@@ -313,17 +313,16 @@ export class FileService {
             return;
         }
 
-        // 1. Get absolute path to the vault root
         const adapter = this.plugin.app.vault.adapter;
         if (!(adapter instanceof FileSystemAdapter)) {
             new Notice(strings.notices.cannotOpenFile);
             return;
         }
-        const vaultPath = adapter.getBasePath();
-        // 2. Combine vault root with the relative Obsidian path
-        const absoluteFilePath = join(vaultPath, normalizePath(filePath));
+
+        const absoluteFilePath = adapter.getFullPath(normalizePath(filePath));
 
         try {
+            const { spawn } = await import('node:child_process');
             let child;
             if (Platform.isMacOS) {
                 // macOS: use the system opener with the specified app
@@ -347,7 +346,7 @@ export class FileService {
                 });
             }
 
-            child.on('error', (error) => {
+            child.on('error', (error: Error) => {
                 errorLog(`Error launching ${editorName}:`, error);
                 new Notice(strings.notices.couldNotOpenInEditor.replace('{editor}', editorName));
             });
@@ -424,7 +423,9 @@ export class FileService {
 
         // Show confirmation dialog if enabled
         if (this.plugin.settings.confirmBeforeDelete) {
-            const modal = new DeleteConfirmationModal(this.plugin.app, file, performDeletion);
+            const modal = new DeleteConfirmationModal(this.plugin.app, file, () => {
+                void performDeletion();
+            });
             modal.open();
         } else {
             // Delete immediately without confirmation

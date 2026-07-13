@@ -1,16 +1,25 @@
-import { FileSystemAdapter, Menu, Notice, Platform, normalizePath, TFile } from 'obsidian';
+import { FileSystemAdapter, Menu, Notice, Platform, TFile } from 'obsidian';
 import type PixelPerfectImage from '../main';
-import { findImageElement, errorLog, findLastObsidianImageSizeParam, getBestHttpImageSource, getImageSourceCandidates, isRemoteImage, isUserVisibleError } from '../utils/utils';
+import {
+    errorLog,
+    findImageElement,
+    findLastObsidianImageSizeParam,
+    findMarkdownViewForElement,
+    getBestHttpImageSource,
+    getImageSourceCandidates,
+    getWorkspaceWindows,
+    isRemoteImage,
+    isUserVisibleError
+} from '../utils/utils';
 import { getExternalEditorPath, parseResizeSize } from './settings';
-import { join } from 'path';
 import { strings } from '../i18n';
-import { findMarkdownViewForElement } from '../utils/utils';
 
 /**
  * Service for managing context menus and menu interactions
  */
 export class MenuService {
     private plugin: PixelPerfectImage;
+    private windowEventCleanups = new Map<Window, () => void>();
     
     constructor(plugin: PixelPerfectImage) {
         this.plugin = plugin;
@@ -118,33 +127,84 @@ export class MenuService {
      * The menu provides options to view image dimensions and resize the image.
      */
     registerImageContextMenu(): void {
-        // Add support for both desktop right-click and mobile long-press
-        this.plugin.registerDomEvent(document, 'contextmenu', this.handleContextMenu.bind(this), true);
-        
-        // Add mobile long-press support
-        let longPressTimer: ReturnType<typeof setTimeout> | null = null;
-        
-        this.plugin.registerDomEvent(document, 'touchstart', (ev: TouchEvent) => {
+        for (const currentWindow of getWorkspaceWindows(this.plugin.app)) {
+            this.registerImageContextMenuForWindow(currentWindow);
+        }
+
+        this.plugin.registerEvent(
+            this.plugin.app.workspace.on('window-open', (_workspaceWindow, currentWindow) => {
+                this.registerImageContextMenuForWindow(currentWindow);
+            })
+        );
+        this.plugin.registerEvent(
+            this.plugin.app.workspace.on('window-close', (_workspaceWindow, currentWindow) => {
+                this.unregisterImageContextMenuForWindow(currentWindow);
+            })
+        );
+    }
+
+    private registerImageContextMenuForWindow(currentWindow: Window): void {
+        if (this.windowEventCleanups.has(currentWindow)) return;
+
+        const doc = currentWindow.document;
+        const handleContextMenu = (ev: MouseEvent | TouchEvent): void => {
+            void this.handleContextMenu(ev).catch(error => {
+                errorLog('Failed to open image context menu:', error);
+                new Notice(strings.notices.failedToPerformAction.replace('{action}', strings.actions.performAction));
+            });
+        };
+
+        let longPressTimer: number | null = null;
+
+        const clearLongPress = (): void => {
+            if (longPressTimer !== null) currentWindow.clearTimeout(longPressTimer);
+            longPressTimer = null;
+        };
+        const contextMenuHandler = (ev: MouseEvent): void => handleContextMenu(ev);
+        const touchStartHandler = (ev: TouchEvent): void => {
             // Ignore multi-touch events to avoid interfering with pinch zooming
-            if (ev.touches.length > 1) return;
-            
+            if (ev.touches.length > 1) {
+                clearLongPress();
+                return;
+            }
+
             const img = findImageElement(ev.target);
             if (!img) return;
-            
-            longPressTimer = setTimeout(() => {
-                this.handleContextMenu(ev);
+
+            clearLongPress();
+            longPressTimer = currentWindow.setTimeout(() => {
+                longPressTimer = null;
+                handleContextMenu(ev);
             }, 500); // 500ms long press
-        }, true);
-        
-        this.plugin.registerDomEvent(document, 'touchend', () => {
-            if (longPressTimer) clearTimeout(longPressTimer);
-            longPressTimer = null;
-        }, true);
-        
-        this.plugin.registerDomEvent(document, 'touchmove', () => {
-            if (longPressTimer) clearTimeout(longPressTimer);
-            longPressTimer = null;
-        }, true);
+        };
+
+        doc.addEventListener('contextmenu', contextMenuHandler, true);
+        doc.addEventListener('touchstart', touchStartHandler, true);
+        doc.addEventListener('touchend', clearLongPress, true);
+        doc.addEventListener('touchmove', clearLongPress, true);
+
+        this.windowEventCleanups.set(currentWindow, () => {
+            clearLongPress();
+            doc.removeEventListener('contextmenu', contextMenuHandler, true);
+            doc.removeEventListener('touchstart', touchStartHandler, true);
+            doc.removeEventListener('touchend', clearLongPress, true);
+            doc.removeEventListener('touchmove', clearLongPress, true);
+        });
+    }
+
+    private unregisterImageContextMenuForWindow(currentWindow: Window): void {
+        const cleanup = this.windowEventCleanups.get(currentWindow);
+        if (!cleanup) return;
+
+        cleanup();
+        this.windowEventCleanups.delete(currentWindow);
+    }
+
+    cleanup(): void {
+        for (const cleanup of this.windowEventCleanups.values()) {
+            cleanup();
+        }
+        this.windowEventCleanups.clear();
     }
 
     async handleContextMenu(ev: MouseEvent | TouchEvent) {
@@ -215,7 +275,7 @@ export class MenuService {
             }
         }
 
-        if (ev instanceof MouseEvent) {
+        if (ev.instanceOf(MouseEvent)) {
             menu.showAtMouseEvent(ev);
             return;
         }
@@ -295,17 +355,15 @@ export class MenuService {
      * Helper to wrap menu item click handlers with common error handling
      * @param action - The action to perform
      * @param errorMessage - The message to show on error
-     * @returns An async function that can be used as a click handler
+     * @returns A void callback that handles the asynchronous action
      */
-    createMenuClickHandler(action: () => Promise<void>, errorMessage: string): () => Promise<void> {
-        return async () => {
-            try {
-                await action();
-            } catch (error) {
+    createMenuClickHandler(action: () => Promise<void>, errorMessage: string): () => void {
+        return () => {
+            void action().catch(error => {
                 errorLog(errorMessage, error);
                 const displayMessage = isUserVisibleError(error) ? error.message : errorMessage;
                 new Notice(displayMessage);
-            }
+            });
         };
     }
 
@@ -317,6 +375,7 @@ export class MenuService {
      * @param action - The action to perform when clicked
      * @param errorMessage - The error message to show if the action fails
      * @param disabled - Whether the item should be disabled
+     * @param isWarning - Whether the item should use Obsidian's warning styling
      */
     addMenuItem(
         menu: Menu,
@@ -324,13 +383,17 @@ export class MenuService {
         icon: string,
         action: () => Promise<void>,
         errorMessage: string,
-        disabled = false
+        disabled = false,
+        isWarning = false
     ): void {
         menu.addItem((item) => {
             item.setTitle(title)
                 .setIcon(icon)
-                .setDisabled(disabled)
-                .onClick(this.createMenuClickHandler(action, errorMessage));
+                .setDisabled(disabled);
+            if (isWarning) {
+                item.setWarning(true);
+            }
+            item.onClick(this.createMenuClickHandler(action, errorMessage));
         });
     }
 
@@ -401,8 +464,7 @@ export class MenuService {
                     new Notice(strings.notices.cannotCopyPath);
                     return;
                 }
-                const vaultPath = adapter.getBasePath();
-                const fullPath = join(vaultPath, normalizePath(imgFile.path));
+                const fullPath = adapter.getFullPath(imgFile.path);
                 await navigator.clipboard.writeText(fullPath);
                 new Notice(strings.notices.filePathCopied);
             },
@@ -607,7 +669,9 @@ export class MenuService {
                 async () => {
                     await this.plugin.fileService.deleteImageAndLink(imgFile);
                 },
-                strings.notices.failedToDeleteImage
+                strings.notices.failedToDeleteImage,
+                false,
+                true
             );
         }
     }

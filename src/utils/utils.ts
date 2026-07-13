@@ -1,4 +1,21 @@
-import { App, Editor, MarkdownView, TFile } from 'obsidian';
+import { App, Editor, FileView, MarkdownView, TFile } from 'obsidian';
+
+function isDomNode(target: EventTarget): target is Node {
+	return 'instanceOf' in target && typeof target.instanceOf === 'function';
+}
+
+/**
+ * Returns every window currently owned by the workspace, including pop-outs.
+ */
+export function getWorkspaceWindows(app: App): Window[] {
+	const workspaceWindows = new Set<Window>([app.workspace.containerEl.win]);
+
+	app.workspace.iterateAllLeaves(leaf => {
+		workspaceWindows.add(leaf.view.containerEl.win);
+	});
+
+	return Array.from(workspaceWindows);
+}
 
 /**
  * Helper to find an image element from an event target
@@ -6,10 +23,10 @@ import { App, Editor, MarkdownView, TFile } from 'obsidian';
  * @returns The found image element or null
  */
 export function findImageElement(target: EventTarget | null): HTMLImageElement | null {
-	if (!target || !(target instanceof HTMLElement)) return null;
+	if (!target || !isDomNode(target) || !target.instanceOf(HTMLElement)) return null;
 	
 	// If target is already an image, return it
-	if (target instanceof HTMLImageElement) return target;
+	if (target.instanceOf(HTMLImageElement)) return target;
 	
 	const imageContext = target.closest(
 		'.image-container, .image-embed, a.internal-embed[src*=".png"], a.internal-embed[src*=".jpg"], a.internal-embed[src*=".jpeg"], a.internal-embed[src*=".gif"], a.internal-embed[src*=".webp"], a.internal-embed[src*=".svg"]'
@@ -151,6 +168,25 @@ export function findMarkdownViewForElement(app: App, element: HTMLElement): Mark
 
 export function findMarkdownFileForElement(app: App, element: HTMLElement): TFile | null {
 	return findMarkdownViewForElement(app, element)?.file ?? null;
+}
+
+/**
+ * Finds the file-backed workspace view that owns an element.
+ * This includes Markdown and Canvas views while excluding settings, modals,
+ * and plugin views that are not associated with a vault file.
+ */
+export function findWorkspaceFileForElement(app: App, element: HTMLElement): TFile | null {
+	let owningFile: TFile | null = null;
+
+	app.workspace.iterateAllLeaves(leaf => {
+		if (owningFile) return;
+
+		const view = leaf.view;
+		if (!(view instanceof FileView) || !view.file) return;
+		if (view.contentEl.contains(element)) owningFile = view.file;
+	});
+
+	return owningFile;
 }
 
 export function findMarkdownEditorForFile(app: App, file: TFile): Editor | null {

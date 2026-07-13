@@ -1,6 +1,14 @@
 import { Notice, TFile } from 'obsidian';
 import type PixelPerfectImage from '../main';
-import { findImageElement, errorLog, findLastObsidianImageSizeParam, findMarkdownFileForElement, isRemoteImage } from '../utils/utils';
+import {
+	errorLog,
+	findImageElement,
+	findLastObsidianImageSizeParam,
+	findMarkdownFileForElement,
+	findWorkspaceFileForElement,
+	getWorkspaceWindows,
+	isRemoteImage
+} from '../utils/utils';
 import { strings } from '../i18n';
 import { DEFAULT_EXTERNAL_IMAGE_FALLBACK_WIDTH_PX } from '../utils/constants';
 
@@ -11,11 +19,11 @@ type WheelImageTarget =
 export class EventService {
 	private plugin: PixelPerfectImage;
 	private isModifierKeyHeld = false;
-	private wheelEventCleanup: (() => void) | null = null;
+	private windowEventCleanups = new Map<Window, () => void>();
 	private wheelWidthCache = new Map<string, number>();
 	private wheelPendingWidth = new Map<string, number>();
-	private wheelDebounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
-	private wheelMaxWaitTimers = new Map<string, ReturnType<typeof setTimeout>>();
+	private wheelDebounceTimers = new Map<string, number>();
+	private wheelMaxWaitTimers = new Map<string, number>();
 	private wheelTargets = new Map<string, { activeFile: TFile; target: WheelImageTarget }>();
 	// Tracks which DOM image element we applied a temporary inline width to (for immediate visual feedback).
 	// This is keyed by active note + image file, and is cleared after the queued markdown update flushes.
@@ -36,16 +44,11 @@ export class EventService {
 		this.isModifierKeyHeld = isHeld;
 	}
 
-	registerWheelEvents(currentWindow: Window) {
-		// If already registered previously, clean it up first
-		if (this.wheelEventCleanup) {
-			// Persist any pending wheel resizes before swapping listeners, so we don't lose the last change.
-			this.flushAllPendingWheelWrites();
-			this.wheelEventCleanup();
-			this.wheelEventCleanup = null;
-		}
+	private registerWindowEvents(currentWindow: Window): void {
+		if (this.windowEventCleanups.has(currentWindow)) return;
 
 		const doc = currentWindow.document;
+		const clickHandler = (ev: MouseEvent) => this.handleImageClick(ev);
 
 		// Handle modifier key press
 		const keydownHandler = (evt: KeyboardEvent) => {
@@ -126,25 +129,33 @@ export class EventService {
 			});
 		};
 
-		// Register handlers with an AbortController so re-registering on layout changes
-		// doesn't accumulate duplicate listeners.
-		const wheelEventController = new AbortController();
-		doc.addEventListener('keydown', keydownHandler, { signal: wheelEventController.signal });
-		doc.addEventListener('keyup', keyupHandler, { signal: wheelEventController.signal });
-		currentWindow.addEventListener('blur', blurHandler, { signal: wheelEventController.signal });
+		doc.addEventListener('click', clickHandler);
+		doc.addEventListener('keydown', keydownHandler);
+		doc.addEventListener('keyup', keyupHandler);
+		currentWindow.addEventListener('blur', blurHandler);
 
 		// For wheel event, we need passive: false to prevent scrolling.
 		// Capture on window so we can intercept before Obsidian's own handlers scroll the view.
 		currentWindow.addEventListener('wheel', wheelHandler, {
 			passive: false,
-			capture: true,
-			signal: wheelEventController.signal
+			capture: true
 		});
 
-		// Store cleanup function for re-registration scenarios (and plugin unload via EventService.cleanup()).
-		this.wheelEventCleanup = () => {
-			wheelEventController.abort();
-		};
+		this.windowEventCleanups.set(currentWindow, () => {
+			doc.removeEventListener('click', clickHandler);
+			doc.removeEventListener('keydown', keydownHandler);
+			doc.removeEventListener('keyup', keyupHandler);
+			currentWindow.removeEventListener('blur', blurHandler);
+			currentWindow.removeEventListener('wheel', wheelHandler, { capture: true });
+		});
+	}
+
+	private unregisterWindowEvents(currentWindow: Window): void {
+		const cleanup = this.windowEventCleanups.get(currentWindow);
+		if (!cleanup) return;
+
+		cleanup();
+		this.windowEventCleanups.delete(currentWindow);
 	}
 
 	isModifierKeyMatch(evt: KeyboardEvent): boolean {
@@ -189,7 +200,7 @@ export class EventService {
 	private setWheelWidthCache(key: string, width: number) {
 		this.wheelWidthCache.set(key, width);
 		if (this.wheelWidthCache.size <= EventService.WHEEL_WIDTH_CACHE_MAX_ENTRIES) return;
-		const oldestKey = this.wheelWidthCache.keys().next().value as string | undefined;
+		const oldestKey = this.wheelWidthCache.keys().next().value;
 		if (oldestKey) this.wheelWidthCache.delete(oldestKey);
 	}
 
@@ -205,9 +216,9 @@ export class EventService {
 
 		// Debounce frequent wheel events into fewer markdown writes.
 		const existingDebounce = this.wheelDebounceTimers.get(cacheKey);
-		if (existingDebounce) clearTimeout(existingDebounce);
+		if (existingDebounce) window.clearTimeout(existingDebounce);
 
-		const debounceTimer = setTimeout(() => {
+		const debounceTimer = window.setTimeout(() => {
 			this.wheelDebounceTimers.delete(cacheKey);
 			this.flushWheelPendingWidth(cacheKey);
 		}, EventService.WHEEL_WRITE_DEBOUNCE_MS);
@@ -215,7 +226,7 @@ export class EventService {
 
 		// During continuous scrolling, still persist occasionally (at most once per max-wait window).
 		if (!this.wheelMaxWaitTimers.has(cacheKey)) {
-			const maxWaitTimer = setTimeout(() => {
+			const maxWaitTimer = window.setTimeout(() => {
 				this.wheelMaxWaitTimers.delete(cacheKey);
 				this.flushWheelPendingWidth(cacheKey);
 			}, EventService.WHEEL_WRITE_MAX_WAIT_MS);
@@ -261,7 +272,7 @@ export class EventService {
 				// Reset max-wait window after a flush. If something changed while writing, ensure we flush again.
 				const maxWaitTimer = this.wheelMaxWaitTimers.get(cacheKey);
 				if (maxWaitTimer) {
-					clearTimeout(maxWaitTimer);
+					window.clearTimeout(maxWaitTimer);
 					this.wheelMaxWaitTimers.delete(cacheKey);
 				}
 
@@ -283,11 +294,11 @@ export class EventService {
 	private flushAllPendingWheelWrites() {
 		for (const cacheKey of this.wheelPendingWidth.keys()) {
 			const debounceTimer = this.wheelDebounceTimers.get(cacheKey);
-			if (debounceTimer) clearTimeout(debounceTimer);
+			if (debounceTimer) window.clearTimeout(debounceTimer);
 			this.wheelDebounceTimers.delete(cacheKey);
 
 			const maxWaitTimer = this.wheelMaxWaitTimers.get(cacheKey);
-			if (maxWaitTimer) clearTimeout(maxWaitTimer);
+			if (maxWaitTimer) window.clearTimeout(maxWaitTimer);
 			this.wheelMaxWaitTimers.delete(cacheKey);
 
 			this.flushWheelPendingWidth(cacheKey);
@@ -411,7 +422,9 @@ export class EventService {
 		const img = findImageElement(ev.target);
 		if (!img) return;
 
-		const activeFile = this.getMarkdownFileForElement(img);
+		// Restrict actions to images inside file-backed workspace views. This supports
+		// Markdown and Canvas without triggering on images in settings or plugin views.
+		const activeFile = findWorkspaceFileForElement(this.plugin.app, img);
 		if (!activeFile) return;
 
 		// If behavior is set to 'do-nothing', return early
@@ -424,14 +437,14 @@ export class EventService {
 
 		// Get the image file and perform the configured action
 		this.plugin.fileService.getImageFileWithErrorHandling(img, true, activeFile)
-			.then((result: { activeFile: TFile; imgFile: TFile } | null) => {
+			.then(async (result: { activeFile: TFile; imgFile: TFile } | null) => {
 				if (result) {
 					if (this.plugin.settings.cmdCtrlClickBehavior === 'open-in-new-tab') {
-						this.plugin.app.workspace.openLinkText(result.imgFile.path, '', true);
+						await this.plugin.app.workspace.openLinkText(result.imgFile.path, '', true);
 					} else if (this.plugin.settings.cmdCtrlClickBehavior === 'open-in-default-app') {
-						this.plugin.fileService.openInDefaultApp(result.imgFile);
+						await this.plugin.fileService.openInDefaultApp(result.imgFile);
 					} else if (this.plugin.settings.cmdCtrlClickBehavior === 'open-in-external-editor') {
-						this.plugin.fileService.openInExternalEditor(result.imgFile.path);
+						await this.plugin.fileService.openInExternalEditor(result.imgFile.path);
 					}
 				}
 			})
@@ -452,14 +465,20 @@ export class EventService {
 
 	// Public method to register all events
 	registerEvents() {
-		// Add click handler for CMD/CTRL + click
-		this.plugin.registerDomEvent(document, 'click', (ev) => this.handleImageClick(ev));
-		
-		// Register mousewheel zoom events
+		for (const currentWindow of getWorkspaceWindows(this.plugin.app)) {
+			this.registerWindowEvents(currentWindow);
+		}
+
 		this.plugin.registerEvent(
-			this.plugin.app.workspace.on("layout-change", () => this.registerWheelEvents(window))
+			this.plugin.app.workspace.on('window-open', (_workspaceWindow, currentWindow) => {
+				this.registerWindowEvents(currentWindow);
+			})
 		);
-		this.registerWheelEvents(window);
+		this.plugin.registerEvent(
+			this.plugin.app.workspace.on('window-close', (_workspaceWindow, currentWindow) => {
+				this.unregisterWindowEvents(currentWindow);
+			})
+		);
 	}
 
 	// Cleanup method
@@ -468,8 +487,8 @@ export class EventService {
 		this.flushAllPendingWheelWrites();
 		this.wheelWidthCache.clear();
 		this.wheelPendingWidth.clear();
-		for (const timer of this.wheelDebounceTimers.values()) clearTimeout(timer);
-		for (const timer of this.wheelMaxWaitTimers.values()) clearTimeout(timer);
+		for (const timer of this.wheelDebounceTimers.values()) window.clearTimeout(timer);
+		for (const timer of this.wheelMaxWaitTimers.values()) window.clearTimeout(timer);
 		this.wheelDebounceTimers.clear();
 		this.wheelMaxWaitTimers.clear();
 		this.wheelTargets.clear();
@@ -478,9 +497,9 @@ export class EventService {
 		}
 		this.wheelComputeQueue.clear();
 		this.wheelWriteQueue.clear();
-		if (this.wheelEventCleanup) {
-			this.wheelEventCleanup();
-			this.wheelEventCleanup = null;
+		for (const cleanup of this.windowEventCleanups.values()) {
+			cleanup();
 		}
+		this.windowEventCleanups.clear();
 	}
 }
