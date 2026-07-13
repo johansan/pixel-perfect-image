@@ -17,8 +17,7 @@ export const STRINGS_ES = {
         openInNewTab: 'Abrir en nueva pestaña',
         openToTheRight: 'Abrir a la derecha',
         openInNewWindow: 'Abrir en nueva ventana',
-        openInDefaultApp: 'Abrir con aplicación predeterminada',
-        openInEditor: 'Abrir en {editor}'
+        openInDefaultApp: 'Abrir con aplicación predeterminada'
     },
 
     // Notice messages
@@ -38,9 +37,6 @@ export const STRINGS_ES = {
         couldNotDetermineImageDimensions: 'No se pudieron determinar las dimensiones de la imagen',
         cannotCopyPath: 'No se puede copiar la ruta - no usa adaptador del sistema de archivos',
         couldNotLocateImage: 'No se pudo localizar el archivo de imagen',
-        setEditorPath: 'Por favor, configura la ruta de {editor} en la configuración de Pixel Perfect Image.',
-        cannotOpenFile: 'No se puede abrir el archivo: Esta bóveda usa un sistema de almacenamiento no estándar',
-        couldNotOpenInEditor: 'No se pudo abrir el archivo en {editor}.',
         failedToRename: 'Error al renombrar la imagen',
         failedToDelete: 'Error al eliminar la imagen y enlaces',
         clickInEditorFirst: 'Por favor, haz clic en el editor primero, luego intenta copiar nuevamente',
@@ -64,8 +60,7 @@ export const STRINGS_ES = {
         failedToOpenInNewTab: 'Error al abrir imagen en nueva pestaña',
         failedToOpenToTheRight: 'Error al abrir imagen a la derecha',
         failedToOpenInNewWindow: 'Error al abrir imagen en nueva ventana',
-        failedToOpenInDefaultApp: 'Error al abrir con aplicación predeterminada',
-        failedToOpenInEditor: 'Error al abrir imagen en {editor}'
+        failedToOpenInDefaultApp: 'Error al abrir con aplicación predeterminada'
     },
 
     // Settings
@@ -73,7 +68,6 @@ export const STRINGS_ES = {
         headings: {
             menuOptions: 'Alternar opciones individuales del menú',
             mousewheelZoom: 'Zoom con rueda del ratón',
-            externalEditor: 'Editor externo',
             advanced: 'Avanzado'
         },
         
@@ -126,8 +120,7 @@ export const STRINGS_ES = {
                 options: {
                     doNothing: 'No hacer nada',
                     openInNewTab: 'Abrir en nueva pestaña',
-                    openInDefaultApp: 'Abrir con aplicación predeterminada',
-                    openInEditor: 'Abrir en {editor}'
+                    openInDefaultApp: 'Abrir con aplicación predeterminada'
                 }
             },
             enableWheelZoom: {
@@ -152,26 +145,6 @@ export const STRINGS_ES = {
             invertScroll: {
                 name: 'Invertir dirección de desplazamiento',
                 desc: 'Invertir la dirección del zoom al desplazarse'
-            },
-            externalEditorName: {
-                name: 'Nombre del editor externo',
-                desc: 'Nombre de tu editor externo (ej., Photoshop)',
-                placeholder: 'Photoshop'
-            },
-            externalEditorPathMac: {
-                name: 'Ruta del editor externo (macOS)',
-                desc: 'Ruta completa a tu aplicación de editor externo en macOS',
-                placeholder: '/Applications/Adobe Photoshop 2025/Adobe Photoshop 2025.app'
-            },
-            externalEditorPathWin: {
-                name: 'Ruta del editor externo (Windows)',
-                desc: 'Ruta completa a tu aplicación de editor externo en Windows',
-                placeholder: 'C:\\Program Files\\Adobe\\Adobe Photoshop 2025\\Photoshop.exe'
-            },
-            externalEditorPathLinux: {
-                name: 'Ruta del editor externo (Linux)',
-                desc: 'Ruta completa a tu aplicación de editor externo en Linux',
-                placeholder: '/usr/bin/gimp'
             },
             confirmDelete: {
                 name: 'Confirmar antes de eliminar',
@@ -219,7 +192,6 @@ export const STRINGS_ES = {
         openInNewTab: 'abrir imagen en nueva pestaña',
         openToTheRight: 'abrir imagen a la derecha',
         openInNewWindow: 'abrir imagen en nueva ventana',
-        openInDefaultApp: 'abrir imagen con aplicación predeterminada',
-        openInEditor: 'abrir imagen en {editor}'
+        openInDefaultApp: 'abrir imagen con aplicación predeterminada'
     }
 };

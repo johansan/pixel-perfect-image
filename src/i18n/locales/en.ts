@@ -17,8 +17,7 @@ export const STRINGS_EN = {
         openInNewTab: 'Open in new tab',
         openToTheRight: 'Open to the right',
         openInNewWindow: 'Open in new window',
-        openInDefaultApp: 'Open in default app',
-        openInEditor: 'Open in {editor}'
+        openInDefaultApp: 'Open in default app'
     },
 
     // Notice messages
@@ -38,9 +37,6 @@ export const STRINGS_EN = {
         couldNotDetermineImageDimensions: 'Could not determine image dimensions',
         cannotCopyPath: 'Cannot copy path - not using file system adapter',
         couldNotLocateImage: 'Could not locate image file',
-        setEditorPath: 'Please set your {editor} path in Pixel Perfect Image settings.',
-        cannotOpenFile: 'Cannot open file: This vault uses a non-standard storage system',
-        couldNotOpenInEditor: 'Could not open file in {editor}.',
         failedToRename: 'Failed to rename image',
         failedToDelete: 'Failed to delete image and links',
         clickInEditorFirst: 'Please click in the editor first, then try copying again',
@@ -64,8 +60,7 @@ export const STRINGS_EN = {
         failedToOpenInNewTab: 'Failed to open image in new tab',
         failedToOpenToTheRight: 'Failed to open image to the right',
         failedToOpenInNewWindow: 'Failed to open image in new window',
-        failedToOpenInDefaultApp: 'Failed to open in default app',
-        failedToOpenInEditor: 'Failed to open image in {editor}'
+        failedToOpenInDefaultApp: 'Failed to open in default app'
     },
 
     // Settings
@@ -73,7 +68,6 @@ export const STRINGS_EN = {
         headings: {
             menuOptions: 'Toggle individual menu options',
             mousewheelZoom: 'Mousewheel zoom',
-            externalEditor: 'External editor',
             advanced: 'Advanced'
         },
         
@@ -126,8 +120,7 @@ export const STRINGS_EN = {
                 options: {
                     doNothing: 'Do nothing',
                     openInNewTab: 'Open in new tab',
-                    openInDefaultApp: 'Open in default app',
-                    openInEditor: 'Open in {editor}'
+                    openInDefaultApp: 'Open in default app'
                 }
             },
             enableWheelZoom: {
@@ -152,26 +145,6 @@ export const STRINGS_EN = {
             invertScroll: {
                 name: 'Invert scroll direction',
                 desc: 'Invert the zoom direction when scrolling'
-            },
-            externalEditorName: {
-                name: 'External editor name',
-                desc: 'Name of your external editor (e.g., Photoshop)',
-                placeholder: 'Photoshop'
-            },
-            externalEditorPathMac: {
-                name: 'External editor path (macOS)',
-                desc: 'Full path to your external editor application on macOS',
-                placeholder: '/Applications/Adobe Photoshop 2025/Adobe Photoshop 2025.app'
-            },
-            externalEditorPathWin: {
-                name: 'External editor path (Windows)',
-                desc: 'Full path to your external editor application on Windows',
-                placeholder: 'C:\\Program Files\\Adobe\\Adobe Photoshop 2025\\Photoshop.exe'
-            },
-            externalEditorPathLinux: {
-                name: 'External editor path (Linux)',
-                desc: 'Full path to your external editor application on Linux',
-                placeholder: '/usr/bin/gimp'
             },
             confirmDelete: {
                 name: 'Confirm before delete',
@@ -219,7 +192,6 @@ export const STRINGS_EN = {
         openInNewTab: 'open image in new tab',
         openToTheRight: 'open image to the right',
         openInNewWindow: 'open image in new window',
-        openInDefaultApp: 'open image in default app',
-        openInEditor: 'open image in {editor}'
+        openInDefaultApp: 'open image in default app'
     }
 };

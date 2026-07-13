@@ -17,8 +17,7 @@ export const STRINGS_JA = {
         openInNewTab: '新しいタブで開く',
         openToTheRight: '右に開く',
         openInNewWindow: '新しいウィンドウで開く',
-        openInDefaultApp: 'デフォルトアプリで開く',
-        openInEditor: '{editor}で開く'
+        openInDefaultApp: 'デフォルトアプリで開く'
     },
 
     // Notice messages
@@ -38,9 +37,6 @@ export const STRINGS_JA = {
         couldNotDetermineImageDimensions: '画像の寸法を特定できませんでした',
         cannotCopyPath: 'パスをコピーできません - ファイルシステムアダプターを使用していません',
         couldNotLocateImage: '画像ファイルが見つかりませんでした',
-        setEditorPath: 'Pixel Perfect Image設定で{editor}のパスを設定してください。',
-        cannotOpenFile: 'ファイルを開けません：このVaultは標準以外のストレージシステムを使用しています',
-        couldNotOpenInEditor: '{editor}でファイルを開けませんでした。',
         failedToRename: '画像名の変更に失敗しました',
         failedToDelete: '画像とリンクの削除に失敗しました',
         clickInEditorFirst: '最初にエディターをクリックしてから、もう一度コピーしてください',
@@ -64,8 +60,7 @@ export const STRINGS_JA = {
         failedToOpenInNewTab: '新しいタブで画像を開くのに失敗しました',
         failedToOpenToTheRight: '右側で画像を開くのに失敗しました',
         failedToOpenInNewWindow: '新しいウィンドウで画像を開くのに失敗しました',
-        failedToOpenInDefaultApp: 'デフォルトアプリで開くのに失敗しました',
-        failedToOpenInEditor: '{editor}で画像を開くのに失敗しました'
+        failedToOpenInDefaultApp: 'デフォルトアプリで開くのに失敗しました'
     },
 
     // Settings
@@ -73,7 +68,6 @@ export const STRINGS_JA = {
         headings: {
             menuOptions: '個別メニューオプションの切り替え',
             mousewheelZoom: 'マウスホイールズーム',
-            externalEditor: '外部エディター',
             advanced: '高度な設定'
         },
         
@@ -126,8 +120,7 @@ export const STRINGS_JA = {
                 options: {
                     doNothing: '何もしない',
                     openInNewTab: '新しいタブで開く',
-                    openInDefaultApp: 'デフォルトアプリで開く',
-                    openInEditor: '{editor}で開く'
+                    openInDefaultApp: 'デフォルトアプリで開く'
                 }
             },
             enableWheelZoom: {
@@ -152,26 +145,6 @@ export const STRINGS_JA = {
             invertScroll: {
                 name: 'スクロール方向を反転',
                 desc: 'スクロール時のズーム方向を反転します'
-            },
-            externalEditorName: {
-                name: '外部エディター名',
-                desc: '外部エディターの名前（例：Photoshop）',
-                placeholder: 'Photoshop'
-            },
-            externalEditorPathMac: {
-                name: '外部エディターパス（macOS）',
-                desc: 'macOS上の外部エディターアプリケーションへのフルパス',
-                placeholder: '/Applications/Adobe Photoshop 2025/Adobe Photoshop 2025.app'
-            },
-            externalEditorPathWin: {
-                name: '外部エディターパス（Windows）',
-                desc: 'Windows上の外部エディターアプリケーションへのフルパス',
-                placeholder: 'C:\\Program Files\\Adobe\\Adobe Photoshop 2025\\Photoshop.exe'
-            },
-            externalEditorPathLinux: {
-                name: '外部エディターのパス（Linux）',
-                desc: 'Linux の外部エディターアプリのフルパス',
-                placeholder: '/usr/bin/gimp'
             },
             confirmDelete: {
                 name: '削除前に確認',
@@ -219,7 +192,6 @@ export const STRINGS_JA = {
         openInNewTab: '新しいタブで画像を開く',
         openToTheRight: '右側で画像を開く',
         openInNewWindow: '新しいウィンドウで画像を開く',
-        openInDefaultApp: 'デフォルトアプリで画像を開く',
-        openInEditor: '{editor}で画像を開く'
+        openInDefaultApp: 'デフォルトアプリで画像を開く'
     }
 };

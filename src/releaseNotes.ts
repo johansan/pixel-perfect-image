@@ -32,6 +32,17 @@ export interface ReleaseNote {
  */
 const RELEASE_NOTES: ReleaseNote[] = [
 	{
+		version: '1.0.28',
+		date: '2026-07-13',
+		showOnUpdate: true,
+		new: [],
+		improved: [],
+		changed: [
+			'We had to remove the option to open images in a custom external app. Obsidian\'s new Community Plugins security panel flags the system-process access required by this feature as high risk, because it technically gives a plugin broad control over the computer—not just the selected image. You can still use **Open in default app**. To open images in a specific editor, set that editor as the default app for the image type in your operating system settings.'
+		],
+		fixed: []
+	},
+	{
 		version: '1.0.27',
 		date: '2026-07-13',
 		showOnUpdate: true,

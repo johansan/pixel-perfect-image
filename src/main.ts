@@ -67,11 +67,34 @@ export default class PixelPerfectImage extends Plugin {
 	async loadSettings() {
 		const data: unknown = await this.loadData();
 		this.hasStoredData = data !== null && data !== undefined;
-		const storedSettings =
+		const rawStoredSettings =
 			data && typeof data === 'object' && !Array.isArray(data)
-				? (data as Partial<PixelPerfectImageSettings>)
+				? (data as Record<string, unknown>)
+				: null;
+		const storedSettings =
+			rawStoredSettings
+				? (rawStoredSettings as Partial<PixelPerfectImageSettings>)
 				: null;
 		this.settings = { ...DEFAULT_SETTINGS, ...(storedSettings ?? {}) };
+
+		const loadedSettings = this.settings as unknown as Record<string, unknown>;
+		let migratedExternalEditorSettings = false;
+		if (loadedSettings.cmdCtrlClickBehavior === 'open-in-external-editor') {
+			this.settings.cmdCtrlClickBehavior = 'open-in-default-app';
+			migratedExternalEditorSettings = true;
+		}
+
+		for (const key of [
+			'externalEditorName',
+			'externalEditorPathMac',
+			'externalEditorPathWin',
+			'externalEditorPathLinux'
+		]) {
+			if (key in loadedSettings) {
+				delete loadedSettings[key];
+				migratedExternalEditorSettings = true;
+			}
+		}
 
 		const rawResizeSizes = (this.settings as unknown as { customResizeSizes?: unknown }).customResizeSizes;
 		const resizeSizes =
@@ -80,6 +103,10 @@ export default class PixelPerfectImage extends Plugin {
 			[];
 
 		this.settings.customResizeSizes = sanitizeResizeSizes(resizeSizes);
+
+		if (migratedExternalEditorSettings) {
+			await this.saveData(this.settings);
+		}
 	}
 
 	async saveSettings() {

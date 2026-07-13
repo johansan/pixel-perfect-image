@@ -17,8 +17,7 @@ export const STRINGS_FR = {
         openInNewTab: 'Ouvrir dans un nouvel onglet',
         openToTheRight: 'Ouvrir à droite',
         openInNewWindow: 'Ouvrir dans une nouvelle fenêtre',
-        openInDefaultApp: 'Ouvrir avec l\'application par défaut',
-        openInEditor: 'Ouvrir dans {editor}'
+        openInDefaultApp: 'Ouvrir avec l\'application par défaut'
     },
 
     // Notice messages
@@ -38,9 +37,6 @@ export const STRINGS_FR = {
         couldNotDetermineImageDimensions: 'Impossible de déterminer les dimensions de l\'image',
         cannotCopyPath: 'Impossible de copier le chemin - n\'utilise pas l\'adaptateur du système de fichiers',
         couldNotLocateImage: 'Impossible de localiser le fichier image',
-        setEditorPath: 'Veuillez définir le chemin de {editor} dans les paramètres de Pixel Perfect Image.',
-        cannotOpenFile: 'Impossible d\'ouvrir le fichier : Ce coffre utilise un système de stockage non standard',
-        couldNotOpenInEditor: 'Impossible d\'ouvrir le fichier dans {editor}.',
         failedToRename: 'Échec du renommage de l\'image',
         failedToDelete: 'Échec de la suppression de l\'image et des liens',
         clickInEditorFirst: 'Veuillez d\'abord cliquer dans l\'éditeur, puis réessayer de copier',
@@ -64,8 +60,7 @@ export const STRINGS_FR = {
         failedToOpenInNewTab: 'Échec de l\'ouverture de l\'image dans un nouvel onglet',
         failedToOpenToTheRight: 'Échec de l\'ouverture de l\'image à droite',
         failedToOpenInNewWindow: 'Échec de l\'ouverture de l\'image dans une nouvelle fenêtre',
-        failedToOpenInDefaultApp: 'Échec de l\'ouverture avec l\'application par défaut',
-        failedToOpenInEditor: 'Échec de l\'ouverture de l\'image dans {editor}'
+        failedToOpenInDefaultApp: 'Échec de l\'ouverture avec l\'application par défaut'
     },
 
     // Settings
@@ -73,7 +68,6 @@ export const STRINGS_FR = {
         headings: {
             menuOptions: 'Basculer les options individuelles du menu',
             mousewheelZoom: 'Zoom avec la molette',
-            externalEditor: 'Éditeur externe',
             advanced: 'Avancé'
         },
         
@@ -126,8 +120,7 @@ export const STRINGS_FR = {
                 options: {
                     doNothing: 'Ne rien faire',
                     openInNewTab: 'Ouvrir dans un nouvel onglet',
-                    openInDefaultApp: 'Ouvrir avec l\'application par défaut',
-                    openInEditor: 'Ouvrir dans {editor}'
+                    openInDefaultApp: 'Ouvrir avec l\'application par défaut'
                 }
             },
             enableWheelZoom: {
@@ -152,26 +145,6 @@ export const STRINGS_FR = {
             invertScroll: {
                 name: 'Inverser la direction de défilement',
                 desc: 'Inverser la direction du zoom lors du défilement'
-            },
-            externalEditorName: {
-                name: 'Nom de l\'éditeur externe',
-                desc: 'Nom de votre éditeur externe (ex., Photoshop)',
-                placeholder: 'Photoshop'
-            },
-            externalEditorPathMac: {
-                name: 'Chemin de l\'éditeur externe (macOS)',
-                desc: 'Chemin complet vers votre application d\'éditeur externe sur macOS',
-                placeholder: '/Applications/Adobe Photoshop 2025/Adobe Photoshop 2025.app'
-            },
-            externalEditorPathWin: {
-                name: 'Chemin de l\'éditeur externe (Windows)',
-                desc: 'Chemin complet vers votre application d\'éditeur externe sur Windows',
-                placeholder: 'C:\\Program Files\\Adobe\\Adobe Photoshop 2025\\Photoshop.exe'
-            },
-            externalEditorPathLinux: {
-                name: 'Chemin de l\'éditeur externe (Linux)',
-                desc: 'Chemin complet vers votre éditeur externe sous Linux',
-                placeholder: '/usr/bin/gimp'
             },
             confirmDelete: {
                 name: 'Confirmer avant suppression',
@@ -219,7 +192,6 @@ export const STRINGS_FR = {
         openInNewTab: 'ouvrir l\'image dans un nouvel onglet',
         openToTheRight: 'ouvrir l\'image à droite',
         openInNewWindow: 'ouvrir l\'image dans une nouvelle fenêtre',
-        openInDefaultApp: 'ouvrir l\'image avec l\'application par défaut',
-        openInEditor: 'ouvrir l\'image dans {editor}'
+        openInDefaultApp: 'ouvrir l\'image avec l\'application par défaut'
     }
 };

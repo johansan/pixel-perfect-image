@@ -2,7 +2,7 @@
 
 **Available in:** English • Deutsch • Español • Français • 日本語 • 中文
 
-Pixel Perfect Image is a plugin for [Obsidian](https://obsidian.md) that helps you manage images in your notes. Right-click any image to view its details, resize it to exact pixel dimensions, or perform file operations like copying to clipboard or opening in external editors like Photoshop or Affinity Photo.
+Pixel Perfect Image is a plugin for [Obsidian](https://obsidian.md) that helps you manage images in your notes. Right-click any image to view its details, resize it to exact pixel dimensions, or perform file operations like copying it to the clipboard or opening it in your default app.
 
 ![Screenshot](https://github.com/johansan/pixel-perfect-image/blob/main/images/screenshot1.png?raw=true)
 
@@ -18,7 +18,6 @@ If you love using Pixel Perfect Image, please consider [buying me a coffee](http
 - **Copy local file path to clipboard:** If you want to access the image from terminal
 - **Show in Finder/Explorer:** Open file browser with your image selected
 - **Open in default system viewer:** Open the image in your default application
-- **Open in External Editor:** Open the image directly in an external editor like Photoshop or Affinity Photo
 - **Rename images:** Quickly rename image files right from the context menu
 - **Works with both Wikilinks and standard Markdown image links**
 - **Quick open in new tab:** CMD/CTRL + click to open image in new tab
@@ -31,7 +30,6 @@ If you love using Pixel Perfect Image, please consider [buying me a coffee](http
    - View filename and dimensions
    - Resize to preset percentages
    - Copy, open, or show in system
-   - Open in external editor
    - Rename image files
 4. Quick resize with mousewheel:
    - Hold Alt key (Option on macOS) and scroll over an image
@@ -92,15 +90,12 @@ The plugin offers several settings to customize its behavior:
 - **Resize options:**
   - Custom resize sizes (comma-separated, supports percentages like 25%, 50% or pixels like 600px, 800px)
 - **CMD/CTRL + click behavior:**
-  - Configure what happens when CMD/CTRL + clicking an image (do nothing, open in new tab, open in default app, or open in external editor)
+  - Configure what happens when CMD/CTRL + clicking an image (do nothing, open in new tab, or open in default app)
 - **Mousewheel zoom:**
   - Enable/disable mousewheel zoom
   - Choose modifier key (Alt/Ctrl/Shift)
   - Adjust zoom step size
   - Invert scroll direction
-- **External editor:**
-  - Set editor name
-  - Configure path to external image editor (platform-specific for macOS, Windows, and Linux)
 - **Advanced:**
   - Confirm before delete (show confirmation dialog before deleting files)
   - Debug mode for troubleshooting

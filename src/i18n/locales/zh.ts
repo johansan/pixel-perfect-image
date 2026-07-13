@@ -17,8 +17,7 @@ export const STRINGS_ZH = {
         openInNewTab: '在新标签页中打开',
         openToTheRight: '在右侧打开',
         openInNewWindow: '在新窗口中打开',
-        openInDefaultApp: '用默认应用打开',
-        openInEditor: '在{editor}中打开'
+        openInDefaultApp: '用默认应用打开'
     },
 
     // Notice messages
@@ -38,9 +37,6 @@ export const STRINGS_ZH = {
         couldNotDetermineImageDimensions: '无法确定图像尺寸',
         cannotCopyPath: '无法复制路径 - 未使用文件系统适配器',
         couldNotLocateImage: '无法找到图像文件',
-        setEditorPath: '请在Pixel Perfect Image设置中设置您的{editor}路径。',
-        cannotOpenFile: '无法打开文件：此保管库使用非标准存储系统',
-        couldNotOpenInEditor: '无法在{editor}中打开文件。',
         failedToRename: '重命名图像失败',
         failedToDelete: '删除图像和链接失败',
         clickInEditorFirst: '请先点击编辑器，然后再次尝试复制',
@@ -64,8 +60,7 @@ export const STRINGS_ZH = {
         failedToOpenInNewTab: '在新标签页中打开图像失败',
         failedToOpenToTheRight: '在右侧打开图像失败',
         failedToOpenInNewWindow: '在新窗口中打开图像失败',
-        failedToOpenInDefaultApp: '用默认应用打开失败',
-        failedToOpenInEditor: '在{editor}中打开图像失败'
+        failedToOpenInDefaultApp: '用默认应用打开失败'
     },
 
     // Settings
@@ -73,7 +68,6 @@ export const STRINGS_ZH = {
         headings: {
             menuOptions: '切换单个菜单选项',
             mousewheelZoom: '鼠标滚轮缩放',
-            externalEditor: '外部编辑器',
             advanced: '高级'
         },
         
@@ -126,8 +120,7 @@ export const STRINGS_ZH = {
                 options: {
                     doNothing: '什么都不做',
                     openInNewTab: '在新标签页中打开',
-                    openInDefaultApp: '用默认应用打开',
-                    openInEditor: '在{editor}中打开'
+                    openInDefaultApp: '用默认应用打开'
                 }
             },
             enableWheelZoom: {
@@ -152,26 +145,6 @@ export const STRINGS_ZH = {
             invertScroll: {
                 name: '反转滚动方向',
                 desc: '反转滚动时的缩放方向'
-            },
-            externalEditorName: {
-                name: '外部编辑器名称',
-                desc: '您的外部编辑器名称（例如：Photoshop）',
-                placeholder: 'Photoshop'
-            },
-            externalEditorPathMac: {
-                name: '外部编辑器路径（macOS）',
-                desc: 'macOS上外部编辑器应用程序的完整路径',
-                placeholder: '/Applications/Adobe Photoshop 2025/Adobe Photoshop 2025.app'
-            },
-            externalEditorPathWin: {
-                name: '外部编辑器路径（Windows）',
-                desc: 'Windows上外部编辑器应用程序的完整路径',
-                placeholder: 'C:\\Program Files\\Adobe\\Adobe Photoshop 2025\\Photoshop.exe'
-            },
-            externalEditorPathLinux: {
-                name: '外部编辑器路径（Linux）',
-                desc: 'Linux 上外部编辑器的完整路径',
-                placeholder: '/usr/bin/gimp'
             },
             confirmDelete: {
                 name: '删除前确认',
@@ -219,7 +192,6 @@ export const STRINGS_ZH = {
         openInNewTab: '在新标签页中打开图像',
         openToTheRight: '在右侧打开图像',
         openInNewWindow: '在新窗口中打开图像',
-        openInDefaultApp: '用默认应用打开图像',
-        openInEditor: '在{editor}中打开图像'
+        openInDefaultApp: '用默认应用打开图像'
     }
 };

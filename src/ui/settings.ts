@@ -27,19 +27,13 @@ export interface PixelPerfectImageSettings {
 	showOpenInDefaultApp: boolean;
 	// Other main settings
 	customResizeSizes: string[];  // Array of sizes like ['25%', '50%', '100%', '600px']
-	cmdCtrlClickBehavior: 'do-nothing' | 'open-in-new-tab' | 'open-in-default-app' | 'open-in-external-editor';
+	cmdCtrlClickBehavior: 'do-nothing' | 'open-in-new-tab' | 'open-in-default-app';
 
 	// Mousewheel zoom settings
 	enableWheelZoom: boolean;
 	wheelModifierKey: 'Alt' | 'Ctrl' | 'Shift';
 	wheelZoomPercentage: number;
 	invertScrollDirection: boolean;
-
-	// External editor settings
-	externalEditorName: string;
-	externalEditorPathMac: string;
-	externalEditorPathWin: string;
-	externalEditorPathLinux: string;
 
 	// Advanced settings
 	confirmBeforeDelete: boolean;
@@ -71,12 +65,6 @@ export const DEFAULT_SETTINGS: PixelPerfectImageSettings = {
 	wheelZoomPercentage: 20,
 	invertScrollDirection: false,
 
-	// External editor defaults
-	externalEditorName: "",
-	externalEditorPathMac: "",
-	externalEditorPathWin: "",
-	externalEditorPathLinux: "",
-
 	// Advanced defaults
 	confirmBeforeDelete: true,
 	debugMode: false,
@@ -89,25 +77,10 @@ type BooleanSettingKey = {
 	[K in keyof PixelPerfectImageSettings]-?: PixelPerfectImageSettings[K] extends boolean ? K : never
 }[keyof PixelPerfectImageSettings];
 
-type ExternalEditorTextKey =
-	| 'externalEditorName'
-	| 'externalEditorPathMac'
-	| 'externalEditorPathWin'
-	| 'externalEditorPathLinux';
-
 interface ToggleSettingSpec {
 	key: BooleanSettingKey;
 	name: string;
 	desc: string;
-}
-
-interface ExternalEditorTextSettingSpec {
-	key: ExternalEditorTextKey;
-	name: string;
-	desc: string;
-	placeholder: string;
-	visible: boolean;
-	normalize: (value: string) => string;
 }
 
 const MENU_OPTIONS_DESCRIPTION = 'Show settings to toggle individual menu items';
@@ -180,41 +153,6 @@ const ADVANCED_TOGGLE_SETTINGS = [
 	}
 ] as const satisfies readonly ToggleSettingSpec[];
 
-const EXTERNAL_EDITOR_TEXT_SETTINGS = [
-	{
-		key: 'externalEditorName',
-		name: strings.settings.items.externalEditorName.name,
-		desc: strings.settings.items.externalEditorName.desc,
-		placeholder: strings.settings.items.externalEditorName.placeholder,
-		visible: true,
-		normalize: (value: string) => value
-	},
-	{
-		key: 'externalEditorPathMac',
-		name: strings.settings.items.externalEditorPathMac.name,
-		desc: strings.settings.items.externalEditorPathMac.desc,
-		placeholder: strings.settings.items.externalEditorPathMac.placeholder,
-		visible: Platform.isMacOS,
-		normalize: (value: string) => value.replace(/\\ /g, ' ')
-	},
-	{
-		key: 'externalEditorPathWin',
-		name: strings.settings.items.externalEditorPathWin.name,
-		desc: strings.settings.items.externalEditorPathWin.desc,
-		placeholder: strings.settings.items.externalEditorPathWin.placeholder,
-		visible: Platform.isWin,
-		normalize: (value: string) => value.replace(/\\ /g, ' ')
-	},
-	{
-		key: 'externalEditorPathLinux',
-		name: strings.settings.items.externalEditorPathLinux.name,
-		desc: strings.settings.items.externalEditorPathLinux.desc,
-		placeholder: strings.settings.items.externalEditorPathLinux.placeholder,
-		visible: !Platform.isMacOS && !Platform.isWin && !Platform.isMobile,
-		normalize: (value: string) => value.trim()
-	}
-] as const satisfies readonly ExternalEditorTextSettingSpec[];
-
 const BOOLEAN_CONTROL_KEYS = [
 	'toggleIndividualMenuOptions',
 	...MENU_OPTION_TOGGLE_SETTINGS.map(setting => setting.key),
@@ -229,8 +167,7 @@ const DIRECT_CONTROL_KEYS = [
 	...BOOLEAN_CONTROL_KEYS,
 	'cmdCtrlClickBehavior',
 	'wheelModifierKey',
-	'wheelZoomPercentage',
-	...EXTERNAL_EDITOR_TEXT_SETTINGS.map(setting => setting.key)
+	'wheelZoomPercentage'
 ] as const;
 
 type DirectControlKey = typeof DIRECT_CONTROL_KEYS[number];
@@ -278,33 +215,12 @@ function configureToggleSetting(
 		);
 }
 
-function configureExternalEditorTextSetting(
-	setting: Setting,
-	settings: PixelPerfectImageSettings,
-	spec: ExternalEditorTextSettingSpec,
-	onChange: () => void
-): void {
-	setting
-		.setName(spec.name)
-		.setDesc(spec.desc)
-		.addText(text =>
-			text
-				.setPlaceholder(spec.placeholder)
-				.setValue(settings[spec.key])
-				.onChange(value => {
-					settings[spec.key] = spec.normalize(value);
-					onChange();
-				})
-		);
-}
-
 export type ResizeSizeUnit = 'px' | '%';
 
 function isCmdCtrlClickBehavior(value: string): value is PixelPerfectImageSettings['cmdCtrlClickBehavior'] {
 	return value === 'do-nothing'
 		|| value === 'open-in-new-tab'
-		|| value === 'open-in-default-app'
-		|| value === 'open-in-external-editor';
+		|| value === 'open-in-default-app';
 }
 
 function isWheelModifierKey(value: string): value is PixelPerfectImageSettings['wheelModifierKey'] {
@@ -333,13 +249,6 @@ export function sanitizeResizeSizes(values: string[]): string[] {
 	return result;
 }
 
-// Add helper function to get the correct path based on platform
-export function getExternalEditorPath(settings: PixelPerfectImageSettings): string {
-	if (Platform.isMacOS) return settings.externalEditorPathMac;
-	if (Platform.isWin) return settings.externalEditorPathWin;
-	return settings.externalEditorPathLinux;
-}
-
 export class PixelPerfectImageSettingTab extends PluginSettingTab {
 	plugin: PixelPerfectImage;
 
@@ -356,7 +265,6 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 
 		const menuOptionsVisible = () => this.plugin.settings.toggleIndividualMenuOptions;
 		const cmdKey = Platform.isMacOS ? 'CMD' : 'CTRL';
-		const editorName = this.plugin.settings.externalEditorName.trim() || 'external editor';
 
 		return [
 			{
@@ -398,11 +306,7 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 					options: {
 						'do-nothing': strings.settings.items.cmdClickBehavior.options.doNothing,
 						'open-in-new-tab': strings.settings.items.cmdClickBehavior.options.openInNewTab,
-						'open-in-default-app': strings.settings.items.cmdClickBehavior.options.openInDefaultApp,
-						'open-in-external-editor': strings.settings.items.cmdClickBehavior.options.openInEditor.replace(
-							'{editor}',
-							editorName
-						)
+						'open-in-default-app': strings.settings.items.cmdClickBehavior.options.openInDefaultApp
 					}
 				}
 			},
@@ -470,20 +374,6 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 			},
 			{
 				type: 'group',
-				heading: strings.settings.headings.externalEditor,
-				items: EXTERNAL_EDITOR_TEXT_SETTINGS.map(setting => ({
-					name: setting.name,
-					desc: setting.desc,
-					visible: setting.visible,
-					control: {
-						type: 'text' as const,
-						key: setting.key,
-						placeholder: setting.placeholder
-					}
-				}))
-			},
-			{
-				type: 'group',
 				heading: strings.settings.headings.advanced,
 				items: ADVANCED_TOGGLE_SETTINGS.map(createToggleDefinition)
 			}
@@ -509,12 +399,7 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 			settings.customResizeSizes = sanitizeResizeSizes(value.split(','));
 			shouldDebounceSave = true;
 		} else {
-			const externalEditorSetting = EXTERNAL_EDITOR_TEXT_SETTINGS.find(setting => setting.key === key);
-			if (externalEditorSetting) {
-				if (typeof value !== 'string') return;
-				settings[externalEditorSetting.key] = externalEditorSetting.normalize(value);
-				shouldDebounceSave = true;
-			} else if (key === 'cmdCtrlClickBehavior') {
+			if (key === 'cmdCtrlClickBehavior') {
 				if (typeof value !== 'string' || !isCmdCtrlClickBehavior(value)) return;
 				settings.cmdCtrlClickBehavior = value;
 			} else if (key === 'wheelModifierKey') {
@@ -618,15 +503,10 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 				.setName(strings.settings.items.cmdClickBehavior.name.replace('{cmd}', cmdKey))
 				.setDesc(strings.settings.items.cmdClickBehavior.desc.replace('{cmd}', cmdKey))
 				.addDropdown(dropdown => {
-					const editorName = this.plugin.settings.externalEditorName.trim() || 'external editor';
 					dropdown
 						.addOption('do-nothing', strings.settings.items.cmdClickBehavior.options.doNothing)
 						.addOption('open-in-new-tab', strings.settings.items.cmdClickBehavior.options.openInNewTab)
 						.addOption('open-in-default-app', strings.settings.items.cmdClickBehavior.options.openInDefaultApp)
-						.addOption(
-							'open-in-external-editor',
-							strings.settings.items.cmdClickBehavior.options.openInEditor.replace('{editor}', editorName)
-						)
 						.setValue(this.plugin.settings.cmdCtrlClickBehavior)
 						.onChange(
 							value => {
@@ -715,19 +595,6 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 				() => void saveSettings()
 			);
 		});
-
-		const externalEditorGroup = createGroup(strings.settings.headings.externalEditor);
-		for (const spec of EXTERNAL_EDITOR_TEXT_SETTINGS) {
-			if (!spec.visible) continue;
-			externalEditorGroup.addSetting(setting => {
-				configureExternalEditorTextSetting(
-					setting,
-					this.plugin.settings,
-					spec,
-					requestSaveSettings
-				);
-			});
-		}
 
 		// Advanced section
 		const advancedGroup = createGroup(strings.settings.headings.advanced);

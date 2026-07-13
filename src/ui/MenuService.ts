@@ -11,7 +11,7 @@ import {
     isRemoteImage,
     isUserVisibleError
 } from '../utils/utils';
-import { getExternalEditorPath, parseResizeSize } from './settings';
+import { parseResizeSize } from './settings';
 import { strings } from '../i18n';
 
 /**
@@ -549,8 +549,6 @@ export class MenuService {
         if (!imgFile) return;
 
         const isMac = Platform.isMacOS;
-        const editorPath = getExternalEditorPath(this.plugin.settings);
-        const hasExternalEditor = !!editorPath?.trim();
         const hasOpenLeafOption = this.plugin.settings.showOpenInNewTab ||
             this.plugin.settings.showOpenToTheRight ||
             this.plugin.settings.showOpenInNewWindow;
@@ -598,7 +596,7 @@ export class MenuService {
             );
         }
 
-        if (hasOpenLeafOption && (this.plugin.settings.showOpenInDefaultApp || hasExternalEditor)) {
+        if (hasOpenLeafOption && this.plugin.settings.showOpenInDefaultApp) {
             menu.addSeparator();
         }
 
@@ -612,20 +610,6 @@ export class MenuService {
                     await this.plugin.fileService.openInDefaultApp(imgFile);
                 },
                 strings.notices.failedToOpenInDefaultApp
-            );
-        }
-
-        // Add external editor option if path is set
-        if (hasExternalEditor) {
-            const editorName = this.plugin.settings.externalEditorName.trim() || "external editor";
-            this.addMenuItem(
-                menu,
-                strings.menu.openInEditor.replace('{editor}', editorName),
-                'edit',
-                async () => {
-                    await this.plugin.fileService.openInExternalEditor(imgFile.path);
-                },
-                strings.notices.failedToOpenInEditor.replace('{editor}', editorName)
             );
         }
 

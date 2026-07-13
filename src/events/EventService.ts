@@ -443,8 +443,6 @@ export class EventService {
 						await this.plugin.app.workspace.openLinkText(result.imgFile.path, '', true);
 					} else if (this.plugin.settings.cmdCtrlClickBehavior === 'open-in-default-app') {
 						await this.plugin.fileService.openInDefaultApp(result.imgFile);
-					} else if (this.plugin.settings.cmdCtrlClickBehavior === 'open-in-external-editor') {
-						await this.plugin.fileService.openInExternalEditor(result.imgFile.path);
 					}
 				}
 			})
@@ -454,9 +452,6 @@ export class EventService {
 					action = strings.actions.openInNewTab;
 				} else if (this.plugin.settings.cmdCtrlClickBehavior === 'open-in-default-app') {
 					action = strings.actions.openInDefaultApp;
-				} else if (this.plugin.settings.cmdCtrlClickBehavior === 'open-in-external-editor') {
-					const editorName = this.plugin.settings.externalEditorName.trim() || 'external editor';
-					action = strings.actions.openInEditor.replace('{editor}', editorName);
 				}
 				errorLog(`Failed to ${action}:`, error);
 				new Notice(strings.notices.failedToPerformAction.replace('{action}', action));

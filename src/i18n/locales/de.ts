@@ -17,8 +17,7 @@ export const STRINGS_DE = {
         openInNewTab: 'In neuem Tab öffnen',
         openToTheRight: 'Nach rechts öffnen',
         openInNewWindow: 'In neuem Fenster öffnen',
-        openInDefaultApp: 'In Standard-App öffnen',
-        openInEditor: 'In {editor} öffnen'
+        openInDefaultApp: 'In Standard-App öffnen'
     },
 
     // Notice messages
@@ -38,9 +37,6 @@ export const STRINGS_DE = {
         couldNotDetermineImageDimensions: 'Bildabmessungen konnten nicht bestimmt werden',
         cannotCopyPath: 'Pfad kann nicht kopiert werden - kein Dateisystem-Adapter',
         couldNotLocateImage: 'Bilddatei konnte nicht gefunden werden',
-        setEditorPath: 'Bitte legen Sie den {editor}-Pfad in den Pixel Perfect Image Einstellungen fest.',
-        cannotOpenFile: 'Datei kann nicht geöffnet werden: Dieser Vault verwendet ein nicht-standardmäßiges Speichersystem',
-        couldNotOpenInEditor: 'Datei konnte nicht in {editor} geöffnet werden.',
         failedToRename: 'Umbenennen des Bildes fehlgeschlagen',
         failedToDelete: 'Löschen von Bild und Links fehlgeschlagen',
         clickInEditorFirst: 'Bitte klicken Sie zuerst in den Editor und versuchen Sie dann erneut zu kopieren',
@@ -64,8 +60,7 @@ export const STRINGS_DE = {
         failedToOpenInNewTab: 'Öffnen des Bildes in neuem Tab fehlgeschlagen',
         failedToOpenToTheRight: 'Öffnen des Bildes nach rechts fehlgeschlagen',
         failedToOpenInNewWindow: 'Öffnen des Bildes in neuem Fenster fehlgeschlagen',
-        failedToOpenInDefaultApp: 'Öffnen in Standard-App fehlgeschlagen',
-        failedToOpenInEditor: 'Öffnen des Bildes in {editor} fehlgeschlagen'
+        failedToOpenInDefaultApp: 'Öffnen in Standard-App fehlgeschlagen'
     },
 
     // Settings
@@ -73,7 +68,6 @@ export const STRINGS_DE = {
         headings: {
             menuOptions: 'Einzelne Menüoptionen umschalten',
             mousewheelZoom: 'Mausrad-Zoom',
-            externalEditor: 'Externer Editor',
             advanced: 'Erweitert'
         },
         
@@ -126,8 +120,7 @@ export const STRINGS_DE = {
                 options: {
                     doNothing: 'Nichts tun',
                     openInNewTab: 'In neuem Tab öffnen',
-                    openInDefaultApp: 'In Standard-App öffnen',
-                    openInEditor: 'In {editor} öffnen'
+                    openInDefaultApp: 'In Standard-App öffnen'
                 }
             },
             enableWheelZoom: {
@@ -152,26 +145,6 @@ export const STRINGS_DE = {
             invertScroll: {
                 name: 'Scroll-Richtung umkehren',
                 desc: 'Zoom-Richtung beim Scrollen umkehren'
-            },
-            externalEditorName: {
-                name: 'Name des externen Editors',
-                desc: 'Name Ihres externen Editors (z.B. Photoshop)',
-                placeholder: 'Photoshop'
-            },
-            externalEditorPathMac: {
-                name: 'Pfad zum externen Editor (macOS)',
-                desc: 'Vollständiger Pfad zu Ihrer externen Editor-Anwendung auf macOS',
-                placeholder: '/Applications/Adobe Photoshop 2025/Adobe Photoshop 2025.app'
-            },
-            externalEditorPathWin: {
-                name: 'Pfad zum externen Editor (Windows)',
-                desc: 'Vollständiger Pfad zu Ihrer externen Editor-Anwendung auf Windows',
-                placeholder: 'C:\\Program Files\\Adobe\\Adobe Photoshop 2025\\Photoshop.exe'
-            },
-            externalEditorPathLinux: {
-                name: 'Pfad zum externen Editor (Linux)',
-                desc: 'Vollständiger Pfad zu Ihrer externen Editor-Anwendung unter Linux',
-                placeholder: '/usr/bin/gimp'
             },
             confirmDelete: {
                 name: 'Vor dem Löschen bestätigen',
@@ -219,7 +192,6 @@ export const STRINGS_DE = {
         openInNewTab: 'Bild in neuem Tab öffnen',
         openToTheRight: 'Bild nach rechts öffnen',
         openInNewWindow: 'Bild in neuem Fenster öffnen',
-        openInDefaultApp: 'Bild in Standard-App öffnen',
-        openInEditor: 'Bild in {editor} öffnen'
+        openInDefaultApp: 'Bild in Standard-App öffnen'
     }
 };
