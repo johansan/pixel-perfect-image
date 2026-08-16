@@ -20,7 +20,7 @@ import { strings } from '../i18n';
 export class MenuService {
     private plugin: PixelPerfectImage;
     private windowEventCleanups = new Map<Window, () => void>();
-    
+
     constructor(plugin: PixelPerfectImage) {
         this.plugin = plugin;
     }
@@ -54,21 +54,22 @@ export class MenuService {
     }
 
     private isSvgBySrc(img: HTMLImageElement): boolean {
-        return getImageSourceCandidates(img).some((source) => this.isSvgUrl(source));
+        return getImageSourceCandidates(img).some(source => this.isSvgUrl(source));
     }
 
     private parseWidthFromImageAlt(img: HTMLImageElement): number | null {
         const alt = img.getAttribute('alt') ?? '';
         if (!alt) return null;
-        const parts = alt.split('|').map((part) => part.trim()).filter(Boolean);
+        const parts = alt
+            .split('|')
+            .map(part => part.trim())
+            .filter(Boolean);
         return findLastObsidianImageSizeParam(parts)?.width ?? null;
     }
 
     async addRemoteResizeMenuItems(menu: Menu, img: HTMLImageElement, activeFile: TFile, imageUrl: string): Promise<void> {
         const isSvg = this.isSvgBySrc(img);
-        const customWidth =
-            this.parseWidthFromImageAlt(img)
-            ?? this.plugin.imageService.getCurrentExternalImageWidth(activeFile, imageUrl);
+        const customWidth = this.parseWidthFromImageAlt(img) ?? this.plugin.imageService.getCurrentExternalImageWidth(activeFile, imageUrl);
 
         let actualWidth: number | null = null;
         if (!isSvg) {
@@ -78,7 +79,7 @@ export class MenuService {
 
         // Add resize options from settings
         if (this.plugin.settings.customResizeSizes.length > 0) {
-            this.plugin.settings.customResizeSizes.forEach((sizeStr) => {
+            this.plugin.settings.customResizeSizes.forEach(sizeStr => {
                 const parsed = parseResizeSize(sizeStr);
                 if (!parsed) return; // Skip invalid formats
 
@@ -86,9 +87,7 @@ export class MenuService {
                 const unit = parsed.unit;
                 const label = strings.menu.resizeTo.replace('{size}', sizeStr);
                 const isPercentage = unit === '%';
-                const disabled = isPercentage
-                    ? (isSvg && actualWidth === null ? true : (currentScale === value))
-                    : (customWidth === value);
+                const disabled = isPercentage ? (isSvg && actualWidth === null ? true : currentScale === value) : customWidth === value;
 
                 let icon = 'image';
                 if (isPercentage) {
@@ -210,7 +209,7 @@ export class MenuService {
     async handleContextMenu(ev: MouseEvent | TouchEvent) {
         // For touch events, ignore multi-touch to prevent triggering during pinch zoom
         if ('touches' in ev && ev.touches.length > 1) return;
-        
+
         const img = findImageElement(ev.target);
         if (!img) return;
 
@@ -219,7 +218,7 @@ export class MenuService {
         if (!markdownView) return;
 
         const menu = new Menu();
-        
+
         // Check if this is a remote image
         const isRemote = isRemoteImage(img);
         const activeFile = markdownView.file;
@@ -229,7 +228,7 @@ export class MenuService {
         // Suppress the native image menu once we've confirmed PPI will handle the event.
         ev.preventDefault();
         ev.stopPropagation();
-        
+
         if (isRemote) {
             const remoteActiveFile = activeFile;
             if (!remoteActiveFile) return;
@@ -267,7 +266,7 @@ export class MenuService {
             // For local images, show all normal options
             await this.addDimensionsMenuItem(menu, img, resolvedImage, currentWidth);
             await this.addResizeMenuItems(menu, img, resolvedImage, currentWidth);
-            
+
             // Only add file operations on desktop
             if (!Platform.isMobile) {
                 menu.addSeparator();
@@ -294,10 +293,8 @@ export class MenuService {
      * @param icon - The icon to use
      */
     addInfoMenuItem(menu: Menu, title: string, icon: string): void {
-        menu.addItem((item) => {
-            item.setTitle(title)
-                .setIcon(icon)
-                .setDisabled(true);
+        menu.addItem(item => {
+            item.setTitle(title).setIcon(icon).setDisabled(true);
         });
     }
 
@@ -317,9 +314,7 @@ export class MenuService {
         if (!this.plugin.settings.showFileInfo) return;
 
         try {
-            const result = resolvedImage !== undefined
-                ? resolvedImage
-                : null;
+            const result = resolvedImage !== undefined ? resolvedImage : null;
             if (!result) return;
 
             const isSvg = result.imgFile.extension.toLowerCase() === 'svg' || this.isSvgBySrc(img);
@@ -333,17 +328,18 @@ export class MenuService {
             }
 
             // Get current scale if set
-            const widthOverride = currentWidth !== undefined
-                ? currentWidth
-                : this.plugin.imageService.getCurrentImageWidth(result.activeFile, result.imgFile);
+            const widthOverride =
+                currentWidth !== undefined
+                    ? currentWidth
+                    : this.plugin.imageService.getCurrentImageWidth(result.activeFile, result.imgFile);
             const currentScale = widthOverride !== null ? Math.round((widthOverride / width) * 100) : null;
             const scaleText = currentScale !== null ? ` @ ${currentScale}%` : '';
 
             // Add filename menu item with scale
-            this.addInfoMenuItem(menu, `${result.imgFile.name}${scaleText}`, "image-file");
+            this.addInfoMenuItem(menu, `${result.imgFile.name}${scaleText}`, 'image-file');
 
             // Add dimensions menu item
-            this.addInfoMenuItem(menu, `${width} × ${height} px`, "info");
+            this.addInfoMenuItem(menu, `${width} × ${height} px`, 'info');
         } catch (error) {
             errorLog('Could not read dimensions:', error);
             const message = isUserVisibleError(error) ? error.message : strings.notices.couldNotReadDimensions;
@@ -386,10 +382,8 @@ export class MenuService {
         disabled = false,
         isWarning = false
     ): void {
-        menu.addItem((item) => {
-            item.setTitle(title)
-                .setIcon(icon)
-                .setDisabled(disabled);
+        menu.addItem(item => {
+            item.setTitle(title).setIcon(icon).setDisabled(disabled);
             if (isWarning) {
                 item.setWarning(true);
             }
@@ -428,13 +422,14 @@ export class MenuService {
         currentWidth?: number | null
     ): Promise<void> {
         // Get current scale and file info
-        const result = resolvedImage !== undefined
-            ? resolvedImage
-            : null;
+        const result = resolvedImage !== undefined ? resolvedImage : null;
         let currentScale: number | null = null;
-        const customWidth = currentWidth !== undefined
-            ? currentWidth
-            : (result ? this.plugin.imageService.getCurrentImageWidth(result.activeFile, result.imgFile) : null);
+        const customWidth =
+            currentWidth !== undefined
+                ? currentWidth
+                : result
+                  ? this.plugin.imageService.getCurrentImageWidth(result.activeFile, result.imgFile)
+                  : null;
         let actualWidth: number | null = null;
         if (!result) {
             if (!this.isSvgBySrc(img)) {
@@ -473,7 +468,7 @@ export class MenuService {
 
         // Add separator before resize options
         menu.addSeparator();
-        
+
         if (!isSvg) {
             actualWidth = this.getRasterNaturalDimensions(img)?.width ?? null;
         }
@@ -489,7 +484,7 @@ export class MenuService {
 
         // Add resize options from settings
         if (this.plugin.settings.customResizeSizes.length > 0) {
-            this.plugin.settings.customResizeSizes.forEach((sizeStr) => {
+            this.plugin.settings.customResizeSizes.forEach(sizeStr => {
                 const parsed = parseResizeSize(sizeStr);
                 if (!parsed) return; // Skip invalid formats
 
@@ -497,23 +492,21 @@ export class MenuService {
                 const unit = parsed.unit;
                 const label = strings.menu.resizeTo.replace('{size}', sizeStr);
                 const isPercentage = unit === '%';
-                const disabled = isPercentage
-                    ? (isSvg && actualWidth === null ? true : (currentScale === value))
-                    : (customWidth === value);
-                
+                const disabled = isPercentage ? (isSvg && actualWidth === null ? true : currentScale === value) : customWidth === value;
+
                 // Choose icon based on unit type and value
                 let icon = 'image';
                 if (isPercentage) {
                     if (value === 100) {
-                        icon = 'image';  // Original size (100%)
+                        icon = 'image'; // Original size (100%)
                     } else {
-                        icon = 'percent';  // Any other percentage
+                        icon = 'percent'; // Any other percentage
                     }
                 } else {
                     // Use ruler/dimensions icon for pixel sizes
-                    icon = 'ruler';  // Fixed pixel size
+                    icon = 'ruler'; // Fixed pixel size
                 }
-                
+
                 this.addMenuItem(
                     menu,
                     label,
@@ -549,9 +542,8 @@ export class MenuService {
         if (!imgFile) return;
 
         const isMac = Platform.isMacOS;
-        const hasOpenLeafOption = this.plugin.settings.showOpenInNewTab ||
-            this.plugin.settings.showOpenToTheRight ||
-            this.plugin.settings.showOpenInNewWindow;
+        const hasOpenLeafOption =
+            this.plugin.settings.showOpenInNewTab || this.plugin.settings.showOpenToTheRight || this.plugin.settings.showOpenInNewWindow;
 
         // Add open in new tab option
         if (this.plugin.settings.showOpenInNewTab) {
@@ -614,7 +606,11 @@ export class MenuService {
         }
 
         // Add separator before file operations
-        if (this.plugin.settings.showShowInFileExplorer || this.plugin.settings.showRenameOption || this.plugin.settings.showDeleteImageOption) {
+        if (
+            this.plugin.settings.showShowInFileExplorer ||
+            this.plugin.settings.showRenameOption ||
+            this.plugin.settings.showDeleteImageOption
+        ) {
             menu.addSeparator();
         }
 

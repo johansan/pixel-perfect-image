@@ -30,7 +30,7 @@ export const STRINGS_ES = {
         imageRenamed: 'Imagen renombrada exitosamente',
         imageAndLinksDeleted: 'Imagen y enlaces eliminados exitosamente',
         imageDeleted: 'Imagen eliminada exitosamente',
-        
+
         // Error messages
         couldNotReadDimensions: 'No se pudieron leer las dimensiones de la imagen',
         couldNotDetermineSvgDimensions: 'No se pudieron determinar las dimensiones del SVG (faltan width/height/viewBox)',
@@ -70,7 +70,7 @@ export const STRINGS_ES = {
             mousewheelZoom: 'Zoom con rueda del ratón',
             advanced: 'Avanzado'
         },
-        
+
         items: {
             whatsNew: {
                 name: 'Novedades de Pixel Perfect Image {version}',
@@ -149,10 +149,6 @@ export const STRINGS_ES = {
             confirmDelete: {
                 name: 'Confirmar antes de eliminar',
                 desc: 'Mostrar diálogo de confirmación antes de eliminar archivos'
-            },
-            debugMode: {
-                name: 'Modo de depuración',
-                desc: 'Habilitar registro de depuración en la consola'
             }
         }
     },

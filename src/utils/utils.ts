@@ -1,20 +1,20 @@
 import { App, Editor, FileView, MarkdownView, TFile } from 'obsidian';
 
 function isDomNode(target: EventTarget): target is Node {
-	return 'instanceOf' in target && typeof target.instanceOf === 'function';
+    return 'instanceOf' in target && typeof target.instanceOf === 'function';
 }
 
 /**
  * Returns every window currently owned by the workspace, including pop-outs.
  */
 export function getWorkspaceWindows(app: App): Window[] {
-	const workspaceWindows = new Set<Window>([app.workspace.containerEl.win]);
+    const workspaceWindows = new Set<Window>([app.workspace.containerEl.win]);
 
-	app.workspace.iterateAllLeaves(leaf => {
-		workspaceWindows.add(leaf.view.containerEl.win);
-	});
+    app.workspace.iterateAllLeaves(leaf => {
+        workspaceWindows.add(leaf.view.containerEl.win);
+    });
 
-	return Array.from(workspaceWindows);
+    return Array.from(workspaceWindows);
 }
 
 /**
@@ -23,31 +23,28 @@ export function getWorkspaceWindows(app: App): Window[] {
  * @returns The found image element or null
  */
 export function findImageElement(target: EventTarget | null): HTMLImageElement | null {
-	if (!target || !isDomNode(target) || !target.instanceOf(HTMLElement)) return null;
-	
-	// If target is already an image, return it
-	if (target.instanceOf(HTMLImageElement)) return target;
-	
-	const imageContext = target.closest(
-		'.image-container, .image-embed, a.internal-embed[src*=".png"], a.internal-embed[src*=".jpg"], a.internal-embed[src*=".jpeg"], a.internal-embed[src*=".gif"], a.internal-embed[src*=".webp"], a.internal-embed[src*=".svg"]'
-	);
-	if (imageContext) return imageContext.querySelector('img');
-	
-	return null;
+    if (!target || !isDomNode(target) || !target.instanceOf(HTMLElement)) return null;
+
+    // If target is already an image, return it
+    if (target.instanceOf(HTMLImageElement)) return target;
+
+    const imageContext = target.closest(
+        '.image-container, .image-embed, a.internal-embed[src*=".png"], a.internal-embed[src*=".jpg"], a.internal-embed[src*=".jpeg"], a.internal-embed[src*=".gif"], a.internal-embed[src*=".webp"], a.internal-embed[src*=".svg"]'
+    );
+    if (imageContext) return imageContext.querySelector('img');
+
+    return null;
 }
 
 export function getImageSourceCandidates(img: HTMLImageElement): string[] {
-	return [
-		img.getAttribute('data-src') ?? '',
-		img.getAttribute('src') ?? '',
-		img.currentSrc ?? '',
-		img.src ?? ''
-	].map((value) => value.trim()).filter(Boolean);
+    return [img.getAttribute('data-src') ?? '', img.getAttribute('src') ?? '', img.currentSrc ?? '', img.src ?? '']
+        .map(value => value.trim())
+        .filter(Boolean);
 }
 
 export function getBestHttpImageSource(img: HTMLImageElement): string {
-	const candidates = getImageSourceCandidates(img);
-	return candidates.find((candidate) => isHttpUrlString(candidate)) ?? candidates[0] ?? '';
+    const candidates = getImageSourceCandidates(img);
+    return candidates.find(candidate => isHttpUrlString(candidate)) ?? candidates[0] ?? '';
 }
 
 /**
@@ -56,44 +53,48 @@ export function getBestHttpImageSource(img: HTMLImageElement): string {
  * @returns True if the image source is a remote URL
  */
 export function isRemoteImage(img: HTMLImageElement): boolean {
-	return getImageSourceCandidates(img).some((source) => isHttpUrlString(source));
+    return getImageSourceCandidates(img).some(source => isHttpUrlString(source));
 }
 
 export function isHttpUrlString(value: string): boolean {
-	return /^\s*https?:\/\//i.test(value);
+    return /^\s*https?:\/\//i.test(value);
 }
 
 export function isLocalNetworkUrl(value: string): boolean {
-	try {
-		const url = new URL(value);
-		if (!isHttpUrlString(url.href)) return false;
+    try {
+        const url = new URL(value);
+        if (!isHttpUrlString(url.href)) return false;
 
-		const host = url.hostname.toLowerCase();
-		if (host === 'localhost' || host.endsWith('.localhost')) return true;
-		if (host.endsWith('.local')) return true;
+        const host = url.hostname.toLowerCase();
+        if (host === 'localhost' || host.endsWith('.localhost')) return true;
+        if (host.endsWith('.local')) return true;
 
-		// IPv4
-		if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
-			const octets = host.split('.').map((part) => Number(part));
-			if (octets.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) return false;
+        // IPv4
+        if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
+            const octets = host.split('.').map(part => Number(part));
+            if (octets.some(n => !Number.isInteger(n) || n < 0 || n > 255)) return false;
 
-			const [a, b] = octets;
-			if (a === 10) return true; // 10.0.0.0/8
-			if (a === 127) return true; // 127.0.0.0/8 (loopback)
-			if (a === 169 && b === 254) return true; // 169.254.0.0/16 (link-local)
-			if (a === 192 && b === 168) return true; // 192.168.0.0/16
-			if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
-			return false;
-		}
+            const [a, b] = octets;
+            if (a === 10) return true; // 10.0.0.0/8
+            if (a === 127) return true; // 127.0.0.0/8 (loopback)
+            if (a === 169 && b === 254) return true; // 169.254.0.0/16 (link-local)
+            if (a === 192 && b === 168) return true; // 192.168.0.0/16
+            if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
+            return false;
+        }
 
-		// IPv6 (common local ranges)
-		if (host === '::1') return true; // loopback
-		if (host.startsWith('fe80:')) return true; // link-local
-		if (host.startsWith('fc') || host.startsWith('fd')) return true; // unique-local fc00::/7
-		return false;
-	} catch {
-		return false;
-	}
+        // IPv6 (common local ranges). Literals keep their brackets in URL.hostname,
+        // e.g. "[::1]"; a bare "fd..." host is a domain name, not an IPv6 address.
+        if (host.startsWith('[') && host.endsWith(']')) {
+            const ipv6 = host.slice(1, -1);
+            if (ipv6 === '::1') return true; // loopback
+            if (ipv6.startsWith('fe80:')) return true; // link-local
+            if (ipv6.startsWith('fc') || ipv6.startsWith('fd')) return true; // unique-local fc00::/7
+        }
+        return false;
+    } catch {
+        return false;
+    }
 }
 
 /**
@@ -101,73 +102,71 @@ export function isLocalNetworkUrl(value: string): boolean {
  * @param args - Arguments to log
  */
 export function errorLog(...args: unknown[]) {
-	const timestamp = new Date().toTimeString().split(' ')[0];
-	console.error(`${timestamp}`, ...args);
+    const timestamp = new Date().toTimeString().split(' ')[0];
+    console.error(`${timestamp}`, ...args);
 }
 
 export function safeDecodeURIComponent(value: string): string {
-	try {
-		return decodeURIComponent(value);
-	} catch {
-		return value;
-	}
+    try {
+        return decodeURIComponent(value);
+    } catch {
+        return value;
+    }
 }
 
 export function createUserVisibleError(message: string): Error {
-	const error = new Error(message);
-	error.name = 'UserVisibleError';
-	return error;
+    const error = new Error(message);
+    error.name = 'UserVisibleError';
+    return error;
 }
 
 export function isUserVisibleError(error: unknown): error is Error {
-	return error instanceof Error && error.name === 'UserVisibleError';
+    return error instanceof Error && error.name === 'UserVisibleError';
 }
 
 export function parseObsidianImageSizeParam(value: string): { width: number; height?: number } | null {
-	const trimmed = value.trim();
-	if (!trimmed) return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
 
-	// Common Obsidian embed size formats:
-	// - "300"
-	// - "300x200"
-	// - "300px" (seen in some user configs/plugins)
-	const sizeMatch = trimmed.match(/^([1-9]\d*)(?:x([1-9]\d*))?(?:px)?$/i);
-	if (!sizeMatch) return null;
+    // Common Obsidian embed size formats:
+    // - "300"
+    // - "300x200"
+    // - "300px" (seen in some user configs/plugins)
+    const sizeMatch = trimmed.match(/^([1-9]\d*)(?:x([1-9]\d*))?(?:px)?$/i);
+    if (!sizeMatch) return null;
 
-	const width = Number.parseInt(sizeMatch[1], 10);
-	if (!Number.isFinite(width) || width <= 0) return null;
+    const width = Number.parseInt(sizeMatch[1], 10);
+    if (!Number.isFinite(width) || width <= 0) return null;
 
-	const heightRaw = sizeMatch[2];
-	if (!heightRaw) return { width };
+    const heightRaw = sizeMatch[2];
+    if (!heightRaw) return { width };
 
-	const height = Number.parseInt(heightRaw, 10);
-	if (!Number.isFinite(height) || height <= 0) return { width };
+    const height = Number.parseInt(heightRaw, 10);
+    if (!Number.isFinite(height) || height <= 0) return { width };
 
-	return { width, height };
+    return { width, height };
 }
 
-export function findLastObsidianImageSizeParam(
-	values: string[]
-): { index: number; width: number; height?: number } | null {
-	for (let index = values.length - 1; index >= 0; index -= 1) {
-		const parsed = parseObsidianImageSizeParam(values[index]);
-		if (parsed) return { index, ...parsed };
-	}
-	return null;
+export function findLastObsidianImageSizeParam(values: string[]): { index: number; width: number; height?: number } | null {
+    for (let index = values.length - 1; index >= 0; index -= 1) {
+        const parsed = parseObsidianImageSizeParam(values[index]);
+        if (parsed) return { index, ...parsed };
+    }
+    return null;
 }
 
 export function findMarkdownViewForElement(app: App, element: HTMLElement): MarkdownView | null {
-	for (const leaf of app.workspace.getLeavesOfType('markdown')) {
-		const view = leaf.view;
-		if (!(view instanceof MarkdownView)) continue;
-		if (!view.file) continue;
-		if (view.contentEl.contains(element)) return view;
-	}
-	return null;
+    for (const leaf of app.workspace.getLeavesOfType('markdown')) {
+        const view = leaf.view;
+        if (!(view instanceof MarkdownView)) continue;
+        if (!view.file) continue;
+        if (view.contentEl.contains(element)) return view;
+    }
+    return null;
 }
 
 export function findMarkdownFileForElement(app: App, element: HTMLElement): TFile | null {
-	return findMarkdownViewForElement(app, element)?.file ?? null;
+    return findMarkdownViewForElement(app, element)?.file ?? null;
 }
 
 /**
@@ -176,26 +175,26 @@ export function findMarkdownFileForElement(app: App, element: HTMLElement): TFil
  * and plugin views that are not associated with a vault file.
  */
 export function findWorkspaceFileForElement(app: App, element: HTMLElement): TFile | null {
-	let owningFile: TFile | null = null;
+    let owningFile: TFile | null = null;
 
-	app.workspace.iterateAllLeaves(leaf => {
-		if (owningFile) return;
+    app.workspace.iterateAllLeaves(leaf => {
+        if (owningFile) return;
 
-		const view = leaf.view;
-		if (!(view instanceof FileView) || !view.file) return;
-		if (view.contentEl.contains(element)) owningFile = view.file;
-	});
+        const view = leaf.view;
+        if (!(view instanceof FileView) || !view.file) return;
+        if (view.contentEl.contains(element)) owningFile = view.file;
+    });
 
-	return owningFile;
+    return owningFile;
 }
 
 export function findMarkdownEditorForFile(app: App, file: TFile): Editor | null {
-	for (const leaf of app.workspace.getLeavesOfType('markdown')) {
-		const view = leaf.view;
-		if (!(view instanceof MarkdownView)) continue;
-		if (!view.file) continue;
-		if (view.file.path !== file.path) continue;
-		return view.editor;
-	}
-	return null;
+    for (const leaf of app.workspace.getLeavesOfType('markdown')) {
+        const view = leaf.view;
+        if (!(view instanceof MarkdownView)) continue;
+        if (!view.file) continue;
+        if (view.file.path !== file.path) continue;
+        return view.editor;
+    }
+    return null;
 }

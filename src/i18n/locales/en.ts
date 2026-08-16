@@ -30,7 +30,7 @@ export const STRINGS_EN = {
         imageRenamed: 'Image renamed successfully',
         imageAndLinksDeleted: 'Image and links deleted successfully',
         imageDeleted: 'Image deleted successfully',
-        
+
         // Error messages
         couldNotReadDimensions: 'Could not read image dimensions',
         couldNotDetermineSvgDimensions: 'Could not determine SVG dimensions (missing width/height/viewBox)',
@@ -70,7 +70,7 @@ export const STRINGS_EN = {
             mousewheelZoom: 'Mousewheel zoom',
             advanced: 'Advanced'
         },
-        
+
         items: {
             whatsNew: {
                 name: "What's new in Pixel Perfect Image {version}",
@@ -149,10 +149,6 @@ export const STRINGS_EN = {
             confirmDelete: {
                 name: 'Confirm before delete',
                 desc: 'Show confirmation dialog before deleting files'
-            },
-            debugMode: {
-                name: 'Debug mode',
-                desc: 'Enable debug logging to console'
             }
         }
     },

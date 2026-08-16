@@ -45,20 +45,25 @@ The plugin calculates the new width based on the original image dimensions.
 ## Examples
 
 Original wikilink:
+
 ```md
 ![[image.png]]
 ```
 
 After resizing to 50%:
+
 ```md
 ![[image.png|500]]
 ```
+
 (assuming the original image was 1000px wide)
 
 Using custom resize width:
+
 ```md
 ![[image.png|600]]
 ```
+
 (setting exact width to 600 pixels)
 
 You can configure multiple custom widths (e.g., 600, 800, 1200) in settings, which will appear as separate menu options.

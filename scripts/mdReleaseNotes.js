@@ -11,24 +11,24 @@ const content = fs.readFileSync(releaseNotesPath, 'utf8');
 // Find the RELEASE_NOTES array declaration
 const releaseNotesMatch = content.match(/(?:export\s+)?const\s+RELEASE_NOTES[\s\S]*?=\s*(\[[\s\S]*?\]);/);
 if (!releaseNotesMatch) {
-	console.error('Could not find RELEASE_NOTES in file');
-	process.exit(1);
+    console.error('Could not find RELEASE_NOTES in file');
+    process.exit(1);
 }
 
 // Evaluate the array in a sandbox to get actual JavaScript objects
 let releases;
 try {
-	const sandbox = {};
-	const arrayCode = `(${releaseNotesMatch[1]})`;
-	releases = vm.runInNewContext(arrayCode, sandbox);
+    const sandbox = {};
+    const arrayCode = `(${releaseNotesMatch[1]})`;
+    releases = vm.runInNewContext(arrayCode, sandbox);
 } catch (error) {
-	console.error('Could not parse release notes:', error.message);
-	process.exit(1);
+    console.error('Could not parse release notes:', error.message);
+    process.exit(1);
 }
 
 if (!releases || releases.length === 0) {
-	console.error('No release notes found');
-	process.exit(1);
+    console.error('No release notes found');
+    process.exit(1);
 }
 
 // Allow selecting a specific version (e.g. CI can pass the tag version)
@@ -39,22 +39,22 @@ const normalizedVersion = versionArg ? versionArg.replace(/^v/, '') : null;
 const release = normalizedVersion ? releases.find(entry => entry && entry.version === normalizedVersion) : releases[0];
 
 if (!release) {
-	console.error(`No release notes found for version: ${normalizedVersion}`);
-	process.exit(1);
+    console.error(`No release notes found for version: ${normalizedVersion}`);
+    process.exit(1);
 }
 
 // Helper function to convert == to **
 const convertMarkdown = text => text.replace(/==/g, '**');
 
 const printSection = (title, items) => {
-	if (!items || items.length === 0) return;
-	console.log(`### ${title}\n`);
-	items.forEach(item => console.log(`- ${convertMarkdown(item)}`));
-	console.log();
+    if (!items || items.length === 0) return;
+    console.log(`### ${title}\n`);
+    items.forEach(item => console.log(`- ${convertMarkdown(item)}`));
+    console.log();
 };
 
 if (release.info) {
-	console.log(`${convertMarkdown(release.info)}\n`);
+    console.log(`${convertMarkdown(release.info)}\n`);
 }
 
 printSection('New', release.new);

@@ -1,0 +1,6 @@
+node_modules
+main.js
+package-lock.json
+coverage
+.obsidian
+LICENSE

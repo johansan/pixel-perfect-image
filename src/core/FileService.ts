@@ -9,7 +9,7 @@ import { strings } from '../i18n';
  */
 export class FileService {
     private plugin: PixelPerfectImage;
-    
+
     constructor(plugin: PixelPerfectImage) {
         this.plugin = plugin;
     }
@@ -21,7 +21,7 @@ export class FileService {
      * @returns The corresponding TFile or null if not found
      */
     getFileForImage(img: HTMLImageElement, activeFile: TFile): TFile | null {
-        const src = img.getAttribute('src') ?? "";
+        const src = img.getAttribute('src') ?? '';
         const wikiLink = img.getAttribute('alt'); // e.g., "MyImage.png|200"
         const embedLinkPath = this.getEmbedLinkPath(img);
         const normalizedAltLink = this.normalizeLinkCandidate(wikiLink, false);
@@ -173,7 +173,7 @@ export class FileService {
         const trimmed = value.trim();
         if (!trimmed) return null;
 
-        const baseValue = trimmed.split("|")[0].trim();
+        const baseValue = trimmed.split('|')[0].trim();
         if (!baseValue) return null;
 
         if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(baseValue)) {
@@ -304,11 +304,11 @@ export class FileService {
      */
     async renameImage(file: TFile): Promise<void> {
         const newName = await this.promptForNewName(file);
-        if (!newName) return;  // User cancelled
+        if (!newName) return; // User cancelled
 
         try {
             // Get the directory path and construct new path
-            const dirPath = file.parent?.path || "/";
+            const dirPath = file.parent?.path || '/';
             const newPath = `${dirPath}/${newName}`;
 
             // Rename the file
@@ -326,8 +326,8 @@ export class FileService {
      * @returns The new filename or null if cancelled
      */
     async promptForNewName(file: TFile): Promise<string | null> {
-        return new Promise((resolve) => {
-            const modal = new FileNameInputModal(this.plugin.app, file.name, (result) => {
+        return new Promise(resolve => {
+            const modal = new FileNameInputModal(this.plugin.app, file.name, result => {
                 resolve(result);
             });
             modal.open();
@@ -345,10 +345,10 @@ export class FileService {
             try {
                 // First, remove all links to the image from the active document
                 const linksRemoved = await this.plugin.linkService.removeImageLinks(file);
-                
+
                 // Then delete the image file itself
                 await this.plugin.app.fileManager.trashFile(file);
-                
+
                 // Show success message
                 if (linksRemoved) {
                     new Notice(strings.notices.imageAndLinksDeleted);

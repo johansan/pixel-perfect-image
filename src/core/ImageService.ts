@@ -1,6 +1,15 @@
 import { Notice, TFile, requestUrl } from 'obsidian';
 import type PixelPerfectImage from '../main';
-import { createUserVisibleError, errorLog, findLastObsidianImageSizeParam, findMarkdownEditorForFile, getBestHttpImageSource, isHttpUrlString, isLocalNetworkUrl, isUserVisibleError } from '../utils/utils';
+import {
+    createUserVisibleError,
+    errorLog,
+    findLastObsidianImageSizeParam,
+    findMarkdownEditorForFile,
+    getBestHttpImageSource,
+    isHttpUrlString,
+    isLocalNetworkUrl,
+    isUserVisibleError
+} from '../utils/utils';
 import { strings } from '../i18n';
 import { DEFAULT_EXTERNAL_IMAGE_FALLBACK_WIDTH_PX } from '../utils/constants';
 
@@ -17,7 +26,7 @@ export class ImageService {
     private static readonly CLIPBOARD_COPY_MAX_PIXELS = 40_000_000; // ~160MB RGBA
     private static readonly CLIPBOARD_COPY_MAX_DIMENSION = 12_000;
     private static readonly CLIPBOARD_COPY_REQUEST_TIMEOUT_MS = 15_000;
-    
+
     constructor(plugin: PixelPerfectImage) {
         this.plugin = plugin;
     }
@@ -67,7 +76,7 @@ export class ImageService {
         }
 
         ctx.drawImage(source, 0, 0, width, height);
-        const blob = await new Promise<Blob | null>((resolveBlob) => {
+        const blob = await new Promise<Blob | null>(resolveBlob => {
             canvas.toBlob(resolveBlob, 'image/png');
         });
         if (!blob) {
@@ -82,10 +91,7 @@ export class ImageService {
     }
 
     private parseContentLength(headers: Record<string, string> | undefined): number | null {
-        const contentLengthRaw =
-            headers?.['content-length'] ??
-            headers?.['Content-Length'] ??
-            headers?.['CONTENT-LENGTH'];
+        const contentLengthRaw = headers?.['content-length'] ?? headers?.['Content-Length'] ?? headers?.['CONTENT-LENGTH'];
         if (!contentLengthRaw) return null;
 
         const contentLength = Number(contentLengthRaw);
@@ -94,19 +100,13 @@ export class ImageService {
     }
 
     private parseContentType(headers: Record<string, string> | undefined): string | null {
-        const contentTypeRaw =
-            headers?.['content-type'] ??
-            headers?.['Content-Type'] ??
-            headers?.['CONTENT-TYPE'];
+        const contentTypeRaw = headers?.['content-type'] ?? headers?.['Content-Type'] ?? headers?.['CONTENT-TYPE'];
         const contentType = contentTypeRaw?.split(';', 1)[0]?.trim();
         return contentType || null;
     }
 
     private parseContentRangeTotal(headers: Record<string, string> | undefined): number | null {
-        const contentRangeRaw =
-            headers?.['content-range'] ??
-            headers?.['Content-Range'] ??
-            headers?.['CONTENT-RANGE'];
+        const contentRangeRaw = headers?.['content-range'] ?? headers?.['Content-Range'] ?? headers?.['CONTENT-RANGE'];
         if (!contentRangeRaw) return null;
 
         // Example: "bytes 0-0/12345" or "bytes 0-0/*"
@@ -240,14 +240,10 @@ export class ImageService {
                 if (isUserVisibleError(error) && error.message === strings.notices.imageTooLargeToCopy) throw error;
             }
 
-            const response = alreadyFetched
-                ? alreadyFetched
-                : await requestUrl({ url, method: 'GET', throw: false, headers: baseHeaders });
+            const response = alreadyFetched ? alreadyFetched : await requestUrl({ url, method: 'GET', throw: false, headers: baseHeaders });
 
             if (response.status < 200 || response.status >= 300) {
-                throw createUserVisibleError(
-                    strings.notices.failedToFetchExternalImage.replace('{status}', String(response.status))
-                );
+                throw createUserVisibleError(strings.notices.failedToFetchExternalImage.replace('{status}', String(response.status)));
             }
 
             const headerLength = this.parseContentLength(response.headers);
@@ -257,9 +253,7 @@ export class ImageService {
 
             const arrayBuffer = response.arrayBuffer;
             if (!(arrayBuffer instanceof ArrayBuffer) || arrayBuffer.byteLength <= 0) {
-                throw createUserVisibleError(
-                    strings.notices.failedToFetchExternalImage.replace('{status}', String(response.status))
-                );
+                throw createUserVisibleError(strings.notices.failedToFetchExternalImage.replace('{status}', String(response.status)));
             }
 
             const byteLength = arrayBuffer.byteLength;
@@ -281,9 +275,7 @@ export class ImageService {
                 throw createUserVisibleError(strings.notices.externalImageNotImage);
             }
 
-            const contentType = headerIsImage
-                ? (normalizedHeaderContentType as string)
-                : sniffedContentType ?? '';
+            const contentType = headerIsImage ? (normalizedHeaderContentType as string) : (sniffedContentType ?? '');
 
             return contentType ? new Blob([arrayBuffer], { type: contentType }) : new Blob([arrayBuffer]);
         })();
@@ -425,9 +417,8 @@ export class ImageService {
             const svgTag = svgText.match(/<svg\b[^>]*>/i)?.[0] ?? '';
             const widthAttrRegex = svgTag.match(/\bwidth\s*=\s*["']([^"']+)["']/i)?.[1] ?? null;
             const heightAttrRegex = svgTag.match(/\bheight\s*=\s*["']([^"']+)["']/i)?.[1] ?? null;
-            const viewBoxAttrRegex = svgTag.match(/\bviewBox\s*=\s*["']([^"']+)["']/i)?.[1]
-                ?? svgTag.match(/\bviewbox\s*=\s*["']([^"']+)["']/i)?.[1]
-                ?? null;
+            const viewBoxAttrRegex =
+                svgTag.match(/\bviewBox\s*=\s*["']([^"']+)["']/i)?.[1] ?? svgTag.match(/\bviewbox\s*=\s*["']([^"']+)["']/i)?.[1] ?? null;
 
             const widthPx = this.parseSvgLengthToPx(widthAttr) ?? this.parseSvgLengthToPx(widthAttrRegex);
             const heightPx = this.parseSvgLengthToPx(heightAttr) ?? this.parseSvgLengthToPx(heightAttrRegex);
@@ -445,8 +436,11 @@ export class ImageService {
             }
 
             if (viewBox) {
-                const parts = viewBox.trim().split(/[\s,]+/).map((part) => Number(part));
-                if (parts.length >= 4 && parts.every((n) => Number.isFinite(n))) {
+                const parts = viewBox
+                    .trim()
+                    .split(/[\s,]+/)
+                    .map(part => Number(part));
+                if (parts.length >= 4 && parts.every(n => Number.isFinite(n))) {
                     const vbWidth = parts[2];
                     const vbHeight = parts[3];
                     if (vbWidth > 0 && vbHeight > 0) {
@@ -541,7 +535,6 @@ export class ImageService {
 
             // No existing width, so append the new width while preserving all attributes
             return [...params, String(newWidth)];
-            
         });
     }
 
@@ -578,7 +571,6 @@ export class ImageService {
 
             // No width parameter found, return unchanged
             return params;
-            
         });
     }
 
@@ -626,10 +618,7 @@ export class ImageService {
             const dimensions = { width, height };
 
             const hasValidDimensions =
-                Number.isFinite(dimensions.width) &&
-                Number.isFinite(dimensions.height) &&
-                dimensions.width > 0 &&
-                dimensions.height > 0;
+                Number.isFinite(dimensions.width) && Number.isFinite(dimensions.height) && dimensions.width > 0 && dimensions.height > 0;
 
             if (!hasValidDimensions) {
                 if (isSvg) {
@@ -765,5 +754,4 @@ export class ImageService {
             throw error;
         }
     }
-
 }

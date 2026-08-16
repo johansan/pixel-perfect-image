@@ -75,17 +75,37 @@ else
     fi
 fi
 
-# Step 3: Check for dead code with Knip (warning only)
+# Step 3: Run unit tests
+echo -e "\nRunning unit tests..."
+if [ -f "node_modules/.bin/vitest" ]; then
+    TEST_OUTPUT=$(npm test 2>&1)
+    TEST_STATUS=$?
+    if [ $TEST_STATUS -ne 0 ]; then
+        echo "$TEST_OUTPUT"
+        echo "❌ Unit tests failed"
+        BUILD_ERRORS=$((BUILD_ERRORS + 1))
+    else
+        TEST_COUNT=$(echo "$TEST_OUTPUT" | sed -n 's/.*Tests[[:space:]]*\([0-9]*\) passed.*/\1/p' | head -1)
+        if [ -n "$TEST_COUNT" ]; then
+            echo "✅ Unit tests passed ($TEST_COUNT tests)"
+        else
+            echo "✅ Unit tests passed"
+        fi
+    fi
+else
+    echo "ℹ️  Vitest not installed - skipping unit tests"
+fi
+
+# Step 4: Check for dead code with Knip
 echo -e "\nChecking for dead code..."
 if command -v knip &> /dev/null || [ -f "node_modules/.bin/knip" ]; then
-    KNIP_OUTPUT=$(npx knip --no-progress 2>/dev/null)
-    DEAD_FILES=$(echo "$KNIP_OUTPUT" | grep -c "^src/.*\.(ts|tsx)" || true)
-    DEAD_EXPORTS=$(echo "$KNIP_OUTPUT" | grep -c "function\|class\|interface\|type\|const" || true)
+    KNIP_OUTPUT=$(npx knip --no-progress 2>&1)
+    KNIP_STATUS=$?
 
-    if [ $DEAD_FILES -gt 0 ] || [ $DEAD_EXPORTS -gt 0 ]; then
-        echo "⚠️  Warning: Found dead code - $DEAD_FILES unused files, $DEAD_EXPORTS unused exports"
-        echo "Run 'npx knip' to see details"
-        BUILD_WARNINGS=$((BUILD_WARNINGS + 1))
+    if [ $KNIP_STATUS -ne 0 ]; then
+        echo "$KNIP_OUTPUT"
+        echo "❌ Knip reported dead code or failed to run"
+        BUILD_ERRORS=$((BUILD_ERRORS + 1))
     else
         echo "✅ No dead code found"
     fi
@@ -93,11 +113,11 @@ else
     echo "ℹ️  Knip not installed - skipping dead code check"
 fi
 
-# Step 4: Fix formatting with Prettier
+# Step 5: Fix formatting with Prettier
 echo -e "\nChecking code formatting..."
 if command -v prettier &> /dev/null || [ -f "node_modules/.bin/prettier" ]; then
-    # Run prettier and capture output
-    PRETTIER_OUTPUT=$(npx prettier --write "src/**/*.{ts,tsx,js,jsx}" "*.{json,md}" 2>&1)
+    # Run prettier on the whole repo (respects .prettierignore) and capture output
+    PRETTIER_OUTPUT=$(npx prettier --write . 2>&1)
     PRETTIER_STATUS=$?
 
     if [ $PRETTIER_STATUS -ne 0 ]; then
@@ -108,7 +128,7 @@ if command -v prettier &> /dev/null || [ -f "node_modules/.bin/prettier" ]; then
         # Check if any files were changed
         if echo "$PRETTIER_OUTPUT" | grep -q "(unchanged)"; then
             # Count changed vs unchanged files
-            CHANGED_COUNT=$(echo "$PRETTIER_OUTPUT" | grep -v "(unchanged)" | grep -E "\.(ts|tsx|js|jsx|json|md|css).*[0-9]+ms$" | wc -l | tr -d ' ')
+            CHANGED_COUNT=$(echo "$PRETTIER_OUTPUT" | grep -v "(unchanged)" | grep -E "\.(ts|tsx|js|jsx|mjs|mts|json|md|css|yml|yaml).*[0-9]+ms$" | wc -l | tr -d ' ')
             UNCHANGED_COUNT=$(echo "$PRETTIER_OUTPUT" | grep -c "(unchanged)" || true)
             
             if [ $CHANGED_COUNT -eq 0 ]; then

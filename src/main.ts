@@ -12,186 +12,181 @@ import { FileService } from './core/FileService';
 import './utils/types';
 
 export default class PixelPerfectImage extends Plugin {
-	settings!: PixelPerfectImageSettings;
-	private hasStoredData = false;
-	private settingsSaveQueue: Promise<void> = Promise.resolve();
-	private settingsSaveDebounceTimer: number | null = null;
-	private settingsSaveDebouncedPromise: Promise<void> | null = null;
-	private settingsSaveDebouncedResolve: (() => void) | null = null;
-	private settingsSaveDebouncedReject: ((error: unknown) => void) | null = null;
-	
-	// Services
-	eventService!: EventService;
-	menuService!: MenuService;
-	imageService!: ImageService;
-	linkService!: LinkService;
-	fileService!: FileService;
+    settings!: PixelPerfectImageSettings;
+    private hasStoredData = false;
+    private settingsSaveQueue: Promise<void> = Promise.resolve();
+    private settingsSaveDebounceTimer: number | null = null;
+    private settingsSaveDebouncedPromise: Promise<void> | null = null;
+    private settingsSaveDebouncedResolve: (() => void) | null = null;
+    private settingsSaveDebouncedReject: ((error: unknown) => void) | null = null;
 
-	async onload() {
-		await this.loadSettings();
-		
-		// Initialize services
-		this.eventService = new EventService(this);
-		this.menuService = new MenuService(this);
-		this.imageService = new ImageService(this);
-		this.linkService = new LinkService(this);
-		this.fileService = new FileService(this);
-		
-		// Setup plugin
-		this.addSettingTab(new PixelPerfectImageSettingTab(this.app, this));
-		
-		// Register features
-		this.menuService.registerImageContextMenu();
-		this.eventService.registerEvents();
+    // Services
+    eventService!: EventService;
+    menuService!: MenuService;
+    imageService!: ImageService;
+    linkService!: LinkService;
+    fileService!: FileService;
 
-		await this.checkForVersionUpdate();
-	}
+    async onload() {
+        await this.loadSettings();
 
-	onunload() {
-		// Cleanup services
-		this.eventService.cleanup();
-		this.menuService.cleanup();
-		this.imageService.clearDimensionCache();
-		if (this.settingsSaveDebounceTimer !== null) {
-			window.clearTimeout(this.settingsSaveDebounceTimer);
-			this.settingsSaveDebounceTimer = null;
-		}
-		if (this.settingsSaveDebouncedPromise) {
-			this.settingsSaveDebouncedReject?.(new Error('Plugin unloaded before settings could be saved'));
-			this.settingsSaveDebouncedPromise = null;
-			this.settingsSaveDebouncedResolve = null;
-			this.settingsSaveDebouncedReject = null;
-		}
-	}
+        // Initialize services
+        this.eventService = new EventService(this);
+        this.menuService = new MenuService(this);
+        this.imageService = new ImageService(this);
+        this.linkService = new LinkService(this);
+        this.fileService = new FileService(this);
 
-	async loadSettings() {
-		const data: unknown = await this.loadData();
-		this.hasStoredData = data !== null && data !== undefined;
-		const rawStoredSettings =
-			data && typeof data === 'object' && !Array.isArray(data)
-				? (data as Record<string, unknown>)
-				: null;
-		const storedSettings =
-			rawStoredSettings
-				? (rawStoredSettings as Partial<PixelPerfectImageSettings>)
-				: null;
-		this.settings = { ...DEFAULT_SETTINGS, ...(storedSettings ?? {}) };
+        // Setup plugin
+        this.addSettingTab(new PixelPerfectImageSettingTab(this.app, this));
 
-		const loadedSettings = this.settings as unknown as Record<string, unknown>;
-		let migratedExternalEditorSettings = false;
-		if (loadedSettings.cmdCtrlClickBehavior === 'open-in-external-editor') {
-			this.settings.cmdCtrlClickBehavior = 'open-in-default-app';
-			migratedExternalEditorSettings = true;
-		}
+        // Register features
+        this.menuService.registerImageContextMenu();
+        this.eventService.registerEvents();
 
-		for (const key of [
-			'externalEditorName',
-			'externalEditorPathMac',
-			'externalEditorPathWin',
-			'externalEditorPathLinux'
-		]) {
-			if (key in loadedSettings) {
-				delete loadedSettings[key];
-				migratedExternalEditorSettings = true;
-			}
-		}
+        await this.checkForVersionUpdate();
+    }
 
-		const rawResizeSizes = (this.settings as unknown as { customResizeSizes?: unknown }).customResizeSizes;
-		const resizeSizes =
-			Array.isArray(rawResizeSizes) ? rawResizeSizes.filter((value): value is string => typeof value === 'string') :
-			typeof rawResizeSizes === 'string' ? rawResizeSizes.split(',') :
-			[];
+    onunload() {
+        // Cleanup services
+        this.eventService.cleanup();
+        this.menuService.cleanup();
+        this.imageService.clearDimensionCache();
+        if (this.settingsSaveDebounceTimer !== null) {
+            window.clearTimeout(this.settingsSaveDebounceTimer);
+            this.settingsSaveDebounceTimer = null;
+        }
+        if (this.settingsSaveDebouncedPromise) {
+            this.settingsSaveDebouncedReject?.(new Error('Plugin unloaded before settings could be saved'));
+            this.settingsSaveDebouncedPromise = null;
+            this.settingsSaveDebouncedResolve = null;
+            this.settingsSaveDebouncedReject = null;
+        }
+    }
 
-		this.settings.customResizeSizes = sanitizeResizeSizes(resizeSizes);
+    async loadSettings() {
+        const data: unknown = await this.loadData();
+        this.hasStoredData = data !== null && data !== undefined;
+        const rawStoredSettings = data && typeof data === 'object' && !Array.isArray(data) ? (data as Record<string, unknown>) : null;
+        const storedSettings = rawStoredSettings ? (rawStoredSettings as Partial<PixelPerfectImageSettings>) : null;
+        this.settings = { ...DEFAULT_SETTINGS, ...(storedSettings ?? {}) };
 
-		if (migratedExternalEditorSettings) {
-			await this.saveData(this.settings);
-		}
-	}
+        const loadedSettings = this.settings as unknown as Record<string, unknown>;
+        let migratedLegacySettings = false;
+        if (loadedSettings.cmdCtrlClickBehavior === 'open-in-external-editor') {
+            this.settings.cmdCtrlClickBehavior = 'open-in-default-app';
+            migratedLegacySettings = true;
+        }
 
-	async saveSettings() {
-		await this.enqueueSettingsSave();
-	}
+        for (const key of [
+            'externalEditorName',
+            'externalEditorPathMac',
+            'externalEditorPathWin',
+            'externalEditorPathLinux',
+            'debugMode'
+        ]) {
+            if (key in loadedSettings) {
+                delete loadedSettings[key];
+                migratedLegacySettings = true;
+            }
+        }
 
-	/**
-	 * Debounced version of `saveSettings()` for high-frequency updates (typing/slider drag).
-	 * Resolves after the coalesced save has been persisted.
-	 */
-	requestSaveSettings(debounceMs = 250): Promise<void> {
-		if (!this.settingsSaveDebouncedPromise) {
-			this.settingsSaveDebouncedPromise = new Promise<void>((resolve, reject) => {
-				this.settingsSaveDebouncedResolve = resolve;
-				this.settingsSaveDebouncedReject = reject;
-			});
-		}
+        const rawResizeSizes = (this.settings as unknown as { customResizeSizes?: unknown }).customResizeSizes;
+        const resizeSizes = Array.isArray(rawResizeSizes)
+            ? rawResizeSizes.filter((value): value is string => typeof value === 'string')
+            : typeof rawResizeSizes === 'string'
+              ? rawResizeSizes.split(',')
+              : [];
 
-		if (this.settingsSaveDebounceTimer !== null) {
-			window.clearTimeout(this.settingsSaveDebounceTimer);
-		}
+        this.settings.customResizeSizes = sanitizeResizeSizes(resizeSizes);
 
-		this.settingsSaveDebounceTimer = window.setTimeout(() => {
-			this.settingsSaveDebounceTimer = null;
+        if (migratedLegacySettings) {
+            await this.saveData(this.settings);
+        }
+    }
 
-			void this.enqueueSettingsSave()
-				.then(() => this.settingsSaveDebouncedResolve?.())
-				.catch(error => this.settingsSaveDebouncedReject?.(error))
-				.finally(() => {
-					this.settingsSaveDebouncedPromise = null;
-					this.settingsSaveDebouncedResolve = null;
-					this.settingsSaveDebouncedReject = null;
-				});
-		}, debounceMs);
+    async saveSettings() {
+        await this.enqueueSettingsSave();
+    }
 
-		return this.settingsSaveDebouncedPromise;
-	}
+    /**
+     * Debounced version of `saveSettings()` for high-frequency updates (typing/slider drag).
+     * Resolves after the coalesced save has been persisted.
+     */
+    requestSaveSettings(debounceMs = 250): Promise<void> {
+        if (!this.settingsSaveDebouncedPromise) {
+            this.settingsSaveDebouncedPromise = new Promise<void>((resolve, reject) => {
+                this.settingsSaveDebouncedResolve = resolve;
+                this.settingsSaveDebouncedReject = reject;
+            });
+        }
 
-	private enqueueSettingsSave(): Promise<void> {
-		this.settingsSaveQueue = this.settingsSaveQueue
-			.catch(error => {
-				console.error('Failed to save settings (previous save):', error);
-			})
-			.then(() => this.saveData(this.settings));
-		return this.settingsSaveQueue;
-	}
+        if (this.settingsSaveDebounceTimer !== null) {
+            window.clearTimeout(this.settingsSaveDebounceTimer);
+        }
 
-	private async checkForVersionUpdate(): Promise<void> {
-		const currentVersion = this.manifest.version;
-		const lastShownVersion = this.settings.lastShownVersion;
+        this.settingsSaveDebounceTimer = window.setTimeout(() => {
+            this.settingsSaveDebounceTimer = null;
 
-		// First install: set baseline and don't show anything
-		if (!lastShownVersion) {
-			if (!this.hasStoredData) {
-				this.settings.lastShownVersion = currentVersion;
-				await this.saveSettings();
-				return;
-			}
-		}
+            void this.enqueueSettingsSave()
+                .then(() => this.settingsSaveDebouncedResolve?.())
+                .catch(error => this.settingsSaveDebouncedReject?.(error))
+                .finally(() => {
+                    this.settingsSaveDebouncedPromise = null;
+                    this.settingsSaveDebouncedResolve = null;
+                    this.settingsSaveDebouncedReject = null;
+                });
+        }, debounceMs);
 
-		// Only show when version changes
-		if (lastShownVersion === currentVersion) {
-			return;
-		}
+        return this.settingsSaveDebouncedPromise;
+    }
 
-		const { getReleaseNotesBetweenVersions, getLatestReleaseNotes, compareVersions, isReleaseAutoDisplayEnabled } = await import(
-			'./releaseNotes'
-		);
+    private enqueueSettingsSave(): Promise<void> {
+        this.settingsSaveQueue = this.settingsSaveQueue
+            .catch(error => {
+                console.error('Failed to save settings (previous save):', error);
+            })
+            .then(() => this.saveData(this.settings));
+        return this.settingsSaveQueue;
+    }
 
-		if (!isReleaseAutoDisplayEnabled(currentVersion)) {
-			return;
-		}
+    private async checkForVersionUpdate(): Promise<void> {
+        const currentVersion = this.manifest.version;
+        const lastShownVersion = this.settings.lastShownVersion;
 
-		const { WhatsNewModal } = await import('./ui/WhatsNewModal');
+        // First install: set baseline and don't show anything
+        if (!lastShownVersion) {
+            if (!this.hasStoredData) {
+                this.settings.lastShownVersion = currentVersion;
+                await this.saveSettings();
+                return;
+            }
+        }
 
-		const releaseNotes =
-			lastShownVersion && compareVersions(currentVersion, lastShownVersion) > 0
-				? getReleaseNotesBetweenVersions(lastShownVersion, currentVersion)
-				: getLatestReleaseNotes();
+        // Only show when version changes
+        if (lastShownVersion === currentVersion) {
+            return;
+        }
 
-		new WhatsNewModal(this.app, releaseNotes, () => {
-			window.setTimeout(() => {
-				this.settings.lastShownVersion = currentVersion;
-				void this.saveSettings();
-			}, 1000);
-		}).open();
-	}
+        const { getReleaseNotesBetweenVersions, getLatestReleaseNotes, compareVersions, isReleaseAutoDisplayEnabled } =
+            await import('./releaseNotes');
+
+        if (!isReleaseAutoDisplayEnabled(currentVersion)) {
+            return;
+        }
+
+        const { WhatsNewModal } = await import('./ui/WhatsNewModal');
+
+        const releaseNotes =
+            lastShownVersion && compareVersions(currentVersion, lastShownVersion) > 0
+                ? getReleaseNotesBetweenVersions(lastShownVersion, currentVersion)
+                : getLatestReleaseNotes();
+
+        new WhatsNewModal(this.app, releaseNotes, () => {
+            window.setTimeout(() => {
+                this.settings.lastShownVersion = currentVersion;
+                void this.saveSettings();
+            }, 1000);
+        }).open();
+    }
 }

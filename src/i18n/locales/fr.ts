@@ -5,62 +5,62 @@ export const STRINGS_FR = {
     // Context menu items
     menu: {
         remoteImage: 'Image distante',
-        copyImageUrl: 'Copier l\'URL de l\'image',
-        copyImage: 'Copier l\'image',
+        copyImageUrl: "Copier l'URL de l'image",
+        copyImage: "Copier l'image",
         copyLocalPath: 'Copier le chemin local',
         resizeTo: 'Redimensionner à {size}',
         removeCustomSize: 'Supprimer la taille personnalisée',
         showInFinder: 'Show in Finder',
-        showInExplorer: 'Afficher dans l\'Explorateur',
-        renameImage: 'Renommer l\'image',
-        deleteImageAndLink: 'Supprimer l\'image et le lien',
+        showInExplorer: "Afficher dans l'Explorateur",
+        renameImage: "Renommer l'image",
+        deleteImageAndLink: "Supprimer l'image et le lien",
         openInNewTab: 'Ouvrir dans un nouvel onglet',
         openToTheRight: 'Ouvrir à droite',
         openInNewWindow: 'Ouvrir dans une nouvelle fenêtre',
-        openInDefaultApp: 'Ouvrir avec l\'application par défaut'
+        openInDefaultApp: "Ouvrir avec l'application par défaut"
     },
 
     // Notice messages
     notices: {
         // Success messages
-        imageUrlCopied: 'URL de l\'image copiée dans le presse-papiers',
+        imageUrlCopied: "URL de l'image copiée dans le presse-papiers",
         imageCopied: 'Image copiée dans le presse-papiers',
         filePathCopied: 'Chemin du fichier copié dans le presse-papiers',
-        customSizeRemoved: 'Taille personnalisée supprimée de l\'image',
+        customSizeRemoved: "Taille personnalisée supprimée de l'image",
         imageRenamed: 'Image renommée avec succès',
         imageAndLinksDeleted: 'Image et liens supprimés avec succès',
         imageDeleted: 'Image supprimée avec succès',
-        
+
         // Error messages
-        couldNotReadDimensions: 'Impossible de lire les dimensions de l\'image',
+        couldNotReadDimensions: "Impossible de lire les dimensions de l'image",
         couldNotDetermineSvgDimensions: 'Impossible de déterminer les dimensions du SVG (width/height/viewBox manquants)',
-        couldNotDetermineImageDimensions: 'Impossible de déterminer les dimensions de l\'image',
-        cannotCopyPath: 'Impossible de copier le chemin - n\'utilise pas l\'adaptateur du système de fichiers',
+        couldNotDetermineImageDimensions: "Impossible de déterminer les dimensions de l'image",
+        cannotCopyPath: "Impossible de copier le chemin - n'utilise pas l'adaptateur du système de fichiers",
         couldNotLocateImage: 'Impossible de localiser le fichier image',
-        failedToRename: 'Échec du renommage de l\'image',
-        failedToDelete: 'Échec de la suppression de l\'image et des liens',
-        clickInEditorFirst: 'Veuillez d\'abord cliquer dans l\'éditeur, puis réessayer de copier',
-        failedToResize: 'Échec du redimensionnement de l\'image',
+        failedToRename: "Échec du renommage de l'image",
+        failedToDelete: "Échec de la suppression de l'image et des liens",
+        clickInEditorFirst: "Veuillez d'abord cliquer dans l'éditeur, puis réessayer de copier",
+        failedToResize: "Échec du redimensionnement de l'image",
         failedToPerformAction: 'Échec de {action}',
-        imageTooLargeToCopy: 'L\'image est trop grande pour être copiée dans le presse-papiers',
-        fetchingLocalNetworkImage: 'Récupération de l\'image depuis une adresse de réseau local',
-        failedToFetchExternalImage: 'Échec de la récupération de l\'image externe (HTTP {status})',
-        externalImageNotImage: 'L\'URL n\'a pas renvoyé une image',
-        externalImageFetchTimedOut: 'Délai dépassé lors de la récupération de l\'image externe',
+        imageTooLargeToCopy: "L'image est trop grande pour être copiée dans le presse-papiers",
+        fetchingLocalNetworkImage: "Récupération de l'image depuis une adresse de réseau local",
+        failedToFetchExternalImage: "Échec de la récupération de l'image externe (HTTP {status})",
+        externalImageNotImage: "L'URL n'a pas renvoyé une image",
+        externalImageFetchTimedOut: "Délai dépassé lors de la récupération de l'image externe",
 
         // Generic failure messages
-        failedToCopyUrl: 'Échec de la copie de l\'URL de l\'image',
-        failedToCopyImage: 'Échec de la copie de l\'image dans le presse-papiers',
+        failedToCopyUrl: "Échec de la copie de l'URL de l'image",
+        failedToCopyImage: "Échec de la copie de l'image dans le presse-papiers",
         failedToCopyPath: 'Échec de la copie du chemin du fichier',
-        failedToResizeTo: 'Échec du redimensionnement de l\'image à {size}',
-        failedToRemoveSize: 'Échec de la suppression de la taille personnalisée de l\'image',
-        failedToOpenExplorer: 'Échec de l\'ouverture de l\'explorateur système',
-        failedToRenameImage: 'Échec du renommage de l\'image',
-        failedToDeleteImage: 'Échec de la suppression de l\'image',
-        failedToOpenInNewTab: 'Échec de l\'ouverture de l\'image dans un nouvel onglet',
-        failedToOpenToTheRight: 'Échec de l\'ouverture de l\'image à droite',
-        failedToOpenInNewWindow: 'Échec de l\'ouverture de l\'image dans une nouvelle fenêtre',
-        failedToOpenInDefaultApp: 'Échec de l\'ouverture avec l\'application par défaut'
+        failedToResizeTo: "Échec du redimensionnement de l'image à {size}",
+        failedToRemoveSize: "Échec de la suppression de la taille personnalisée de l'image",
+        failedToOpenExplorer: "Échec de l'ouverture de l'explorateur système",
+        failedToRenameImage: "Échec du renommage de l'image",
+        failedToDeleteImage: "Échec de la suppression de l'image",
+        failedToOpenInNewTab: "Échec de l'ouverture de l'image dans un nouvel onglet",
+        failedToOpenToTheRight: "Échec de l'ouverture de l'image à droite",
+        failedToOpenInNewWindow: "Échec de l'ouverture de l'image dans une nouvelle fenêtre",
+        failedToOpenInDefaultApp: "Échec de l'ouverture avec l'application par défaut"
     },
 
     // Settings
@@ -70,7 +70,7 @@ export const STRINGS_FR = {
             mousewheelZoom: 'Zoom avec la molette',
             advanced: 'Avancé'
         },
-        
+
         items: {
             whatsNew: {
                 name: 'Quoi de neuf dans Pixel Perfect Image {version}',
@@ -83,31 +83,31 @@ export const STRINGS_FR = {
             },
             showInExplorer: {
                 name: 'Show in Finder/Explorateur',
-                desc: 'Afficher l\'option pour révéler l\'image dans l\'explorateur de fichiers système'
+                desc: "Afficher l'option pour révéler l'image dans l'explorateur de fichiers système"
             },
             renameImage: {
-                name: 'Renommer l\'image',
-                desc: 'Afficher l\'option pour renommer le fichier image'
+                name: "Renommer l'image",
+                desc: "Afficher l'option pour renommer le fichier image"
             },
             deleteImage: {
-                name: 'Supprimer l\'image et le lien',
-                desc: 'Afficher l\'option pour supprimer à la fois le fichier image et le lien'
+                name: "Supprimer l'image et le lien",
+                desc: "Afficher l'option pour supprimer à la fois le fichier image et le lien"
             },
             openInNewTab: {
                 name: 'Ouvrir dans un nouvel onglet',
-                desc: 'Afficher l\'option pour ouvrir l\'image dans un nouvel onglet'
+                desc: "Afficher l'option pour ouvrir l'image dans un nouvel onglet"
             },
             openToTheRight: {
                 name: 'Ouvrir à droite',
-                desc: 'Afficher l\'option pour ouvrir l\'image dans une division à droite'
+                desc: "Afficher l'option pour ouvrir l'image dans une division à droite"
             },
             openInNewWindow: {
                 name: 'Ouvrir dans une nouvelle fenêtre',
-                desc: 'Afficher l\'option pour ouvrir l\'image dans une nouvelle fenêtre de l\'application'
+                desc: "Afficher l'option pour ouvrir l'image dans une nouvelle fenêtre de l'application"
             },
             openInDefaultApp: {
-                name: 'Ouvrir avec l\'application par défaut',
-                desc: 'Afficher l\'option pour ouvrir l\'image avec l\'application par défaut'
+                name: "Ouvrir avec l'application par défaut",
+                desc: "Afficher l'option pour ouvrir l'image avec l'application par défaut"
             },
             resizeOptions: {
                 name: 'Options de redimensionnement',
@@ -120,7 +120,7 @@ export const STRINGS_FR = {
                 options: {
                     doNothing: 'Ne rien faire',
                     openInNewTab: 'Ouvrir dans un nouvel onglet',
-                    openInDefaultApp: 'Ouvrir avec l\'application par défaut'
+                    openInDefaultApp: "Ouvrir avec l'application par défaut"
                 }
             },
             enableWheelZoom: {
@@ -149,10 +149,6 @@ export const STRINGS_FR = {
             confirmDelete: {
                 name: 'Confirmer avant suppression',
                 desc: 'Afficher la boîte de dialogue de confirmation avant de supprimer les fichiers'
-            },
-            debugMode: {
-                name: 'Mode débogage',
-                desc: 'Activer l\'enregistrement de débogage dans la console'
             }
         }
     },
@@ -160,12 +156,12 @@ export const STRINGS_FR = {
     // Modal dialogs
     modals: {
         rename: {
-            title: 'Renommer l\'image',
+            title: "Renommer l'image",
             renameButton: 'Renommer',
             cancelButton: 'Annuler'
         },
         delete: {
-            title: 'Supprimer l\'image',
+            title: "Supprimer l'image",
             confirmMessage: 'Êtes-vous sûr de vouloir supprimer "{filename}" ?',
             warningMessage: 'Cela supprimera à la fois le fichier image et tous les liens vers celui-ci dans le document actuel.',
             deleteButton: 'Supprimer',
@@ -188,10 +184,10 @@ export const STRINGS_FR = {
 
     // Actions (for error messages)
     actions: {
-        performAction: 'effectuer l\'action',
-        openInNewTab: 'ouvrir l\'image dans un nouvel onglet',
-        openToTheRight: 'ouvrir l\'image à droite',
-        openInNewWindow: 'ouvrir l\'image dans une nouvelle fenêtre',
-        openInDefaultApp: 'ouvrir l\'image avec l\'application par défaut'
+        performAction: "effectuer l'action",
+        openInNewTab: "ouvrir l'image dans un nouvel onglet",
+        openToTheRight: "ouvrir l'image à droite",
+        openInNewWindow: "ouvrir l'image dans une nouvelle fenêtre",
+        openInDefaultApp: "ouvrir l'image avec l'application par défaut"
     }
 };

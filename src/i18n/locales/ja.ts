@@ -30,7 +30,7 @@ export const STRINGS_JA = {
         imageRenamed: '画像名を正常に変更しました',
         imageAndLinksDeleted: '画像とリンクを正常に削除しました',
         imageDeleted: '画像を正常に削除しました',
-        
+
         // Error messages
         couldNotReadDimensions: '画像の寸法を読み取れませんでした',
         couldNotDetermineSvgDimensions: 'SVGの寸法を特定できませんでした（width/height/viewBoxがありません）',
@@ -70,7 +70,7 @@ export const STRINGS_JA = {
             mousewheelZoom: 'マウスホイールズーム',
             advanced: '高度な設定'
         },
-        
+
         items: {
             whatsNew: {
                 name: 'Pixel Perfect Image {version} の新機能',
@@ -149,10 +149,6 @@ export const STRINGS_JA = {
             confirmDelete: {
                 name: '削除前に確認',
                 desc: 'ファイル削除前に確認ダイアログを表示します'
-            },
-            debugMode: {
-                name: 'デバッグモード',
-                desc: 'コンソールにデバッグログを出力します'
             }
         }
     },

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "project": ["src/**/*.ts"],
+  "ignoreExportsUsedInFile": {
+    "interface": true,
+    "type": true,
+    "enum": true
+  },
+  "rules": {
+    "files": "error",
+    "exports": "error",
+    "types": "off",
+    "nsTypes": "off",
+    "enumMembers": "off",
+    "duplicates": "off",
+    "unlisted": "error",
+    "unresolved": "error"
+  }
+}

@@ -30,7 +30,7 @@ export const STRINGS_ZH = {
         imageRenamed: '图像重命名成功',
         imageAndLinksDeleted: '图像和链接删除成功',
         imageDeleted: '图像删除成功',
-        
+
         // Error messages
         couldNotReadDimensions: '无法读取图像尺寸',
         couldNotDetermineSvgDimensions: '无法确定 SVG 尺寸（缺少 width/height/viewBox）',
@@ -70,7 +70,7 @@ export const STRINGS_ZH = {
             mousewheelZoom: '鼠标滚轮缩放',
             advanced: '高级'
         },
-        
+
         items: {
             whatsNew: {
                 name: 'Pixel Perfect Image {version} 的新功能',
@@ -149,10 +149,6 @@ export const STRINGS_ZH = {
             confirmDelete: {
                 name: '删除前确认',
                 desc: '删除文件前显示确认对话框'
-            },
-            debugMode: {
-                name: '调试模式',
-                desc: '在控制台中启用调试日志'
             }
         }
     },

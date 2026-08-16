@@ -3,13 +3,14 @@ import type PixelPerfectImage from '../main';
 import { WIKILINK_IMAGE_REGEX } from '../utils/constants';
 import { ImageLink } from '../utils/types';
 import { errorLog, findLastObsidianImageSizeParam, safeDecodeURIComponent } from '../utils/utils';
+import { markdownCodeRanges, overlapsRange } from '../utils/markdownRanges';
 
 /**
  * Service for handling image link parsing and manipulation
  */
 export class LinkService {
     private plugin: PixelPerfectImage;
-    
+
     constructor(plugin: PixelPerfectImage) {
         this.plugin = plugin;
     }
@@ -26,6 +27,9 @@ export class LinkService {
             rawDestination: string;
         }) => void
     ) {
+        // Links rendered as code (fenced blocks, inline backtick spans) are syntax
+        // examples, not embeds, and must never be rewritten or matched.
+        const codeRanges = markdownCodeRanges(text);
         let index = 0;
         const length = text.length;
 
@@ -86,15 +90,17 @@ export class LinkService {
             const { url, titleSuffix } = this.splitMarkdownLinkDestination(rawDestination);
             const fullMatch = text.substring(start, destEndParen + 1);
 
-            onMatch({
-                start,
-                end: destEndParen + 1,
-                fullMatch,
-                description,
-                linkPath: url,
-                titleSuffix,
-                rawDestination
-            });
+            if (!overlapsRange(codeRanges, start, destEndParen + 1)) {
+                onMatch({
+                    start,
+                    end: destEndParen + 1,
+                    fullMatch,
+                    description,
+                    linkPath: url,
+                    titleSuffix,
+                    rawDestination
+                });
+            }
 
             index = destEndParen + 1;
         }
@@ -146,7 +152,7 @@ export class LinkService {
     }
 
     private encodeMarkdownPathSegment(value: string): string {
-        return encodeURIComponent(value).replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+        return encodeURIComponent(value).replace(/[!'()*]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
     }
 
     private replaceMarkdownImageLinks(
@@ -166,12 +172,24 @@ export class LinkService {
         return result;
     }
 
+    /**
+     * Replaces wiki-style image links (![[image.png|100]]) outside Markdown code ranges.
+     * Links inside code fences or inline code spans are left untouched.
+     */
+    private replaceWikiImageLinks(text: string, replacer: (match: string, linkInner: string) => string): string {
+        const codeRanges = markdownCodeRanges(text);
+        return text.replace(WIKILINK_IMAGE_REGEX, (match: string, linkInner: string, offset: number) => {
+            if (overlapsRange(codeRanges, offset, offset + match.length)) return match;
+            return replacer(match, linkInner);
+        });
+    }
+
     private splitFrontmatter(data: string): { frontmatter: string; content: string } {
         // Simple YAML frontmatter handling:
         // - Only treat it as frontmatter if the file starts with `---` and we can find a closing `---`.
         // - If the closing delimiter is missing, treat as no frontmatter.
         const match = data.match(/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/);
-        if (!match) return { frontmatter: "", content: data };
+        if (!match) return { frontmatter: '', content: data };
         const frontmatter = match[0];
         return { frontmatter, content: data.substring(frontmatter.length) };
     }
@@ -179,16 +197,16 @@ export class LinkService {
     /**
      * Updates image links in the text using a common transformation logic.
      * Handles both wiki-style (![[image.png|100]]) and markdown-style (![alt|100](image.png)) links.
-     * 
+     *
      * Examples of transformations:
      * - Input text: "Here's an image: ![[photo.jpg|50]]"
      *   Transform: (params) => ["100"]
      *   Output: "Here's an image: ![[photo.jpg|100]]"
-     * 
+     *
      * - Input text: "Another image: ![caption|50](photo.jpg)"
      *   Transform: (params) => ["100"]
      *   Output: "Another image: ![caption|100](photo.jpg)"
-     * 
+     *
      * @param text - The markdown text to update
      * @param activeFile - The currently active file (for resolving relative paths)
      * @param imageFile - The specific image file to update links for
@@ -197,39 +215,39 @@ export class LinkService {
      */
     updateLinks(text: string, activeFile: TFile, imageFile: TFile, transform: (params: string[]) => string[]): string {
         // Handle wiki-style links (![[image.png|100]])
-        text = text.replace(WIKILINK_IMAGE_REGEX, (match: string, linkInner: string) => {
+        text = this.replaceWikiImageLinks(text, (match: string, linkInner: string) => {
             // Parse the link components (path, hash, params)
             const link = this.parseLinkComponents(linkInner);
-            
+
             // Skip if this link doesn't point to our target image
             if (!this.resolveLink(link.path, activeFile, imageFile)) {
-                return match;  // Return original match unchanged
+                return match; // Return original match unchanged
             }
 
             // Transform the parameters (e.g., change width)
             link.params = transform(link.params);
             // Rebuild the link with new parameters
             const newLink = this.buildLinkPath(link);
-            return `![[${newLink}]]`;  // Reconstruct full wikilink
+            return `![[${newLink}]]`; // Reconstruct full wikilink
         });
 
         // Handle markdown-style links (![alt|100](image.png))
         return this.replaceMarkdownImageLinks(text, (match, description, linkPath, titleSuffix) => {
             // Parse the link components from both parts
             const link = this.parseLinkComponents(description, linkPath);
-            
+
             // Skip if this link doesn't point to our target image
             if (!this.resolveLink(link.path, activeFile, imageFile)) {
-                return match;  // Return original match unchanged
+                return match; // Return original match unchanged
             }
 
             // Get the base description without parameters
-            const baseDesc = description.split("|")[0].trim();
+            const baseDesc = description.split('|')[0].trim();
             const desc = baseDesc || imageFile.basename;
             // Transform the parameters
             link.params = transform(link.params);
             // Combine description with new parameters
-            const newDescription = link.params.length > 0 ? [desc, ...link.params].join("|") : desc;
+            const newDescription = link.params.length > 0 ? [desc, ...link.params].join('|') : desc;
             // For markdown links, we put parameters in the description and keep the URL clean
             // Pass true to encode spaces in the path
             const newDestination = `${this.buildLinkPath({ ...link, params: [] }, true)}${titleSuffix}`;
@@ -260,10 +278,10 @@ export class LinkService {
         return this.replaceMarkdownImageLinks(text, (match, description, linkPath, _titleSuffix, rawDestination) => {
             if (!this.isSameExternalUrl(linkPath, imageUrl)) return match;
 
-            const [baseDescRaw, ...params] = description.split("|");
+            const [baseDescRaw, ...params] = description.split('|');
             const baseDesc = baseDescRaw.trim();
             const newParams = transform(params);
-            const newDescription = newParams.length > 0 ? [baseDesc, ...newParams].join("|") : baseDesc;
+            const newDescription = newParams.length > 0 ? [baseDesc, ...newParams].join('|') : baseDesc;
             return `![${newDescription}](${rawDestination})`;
         });
     }
@@ -271,15 +289,15 @@ export class LinkService {
     /**
      * Parses an Obsidian image link into its components.
      * Handles both wiki-style (![[image.png|100]]) and markdown-style (![alt|100](image.png)) links.
-     * 
+     *
      * For wiki-style links (![[image.png|100#heading]]):
      * - mainPart = "image.png|100#heading"
      * - linkPath = undefined
-     * 
+     *
      * For markdown-style links (![alt|100](image.png#heading)):
      * - mainPart = "alt|100" (the part between [] brackets)
      * - linkPath = "image.png#heading" (the part between () parentheses)
-     * 
+     *
      * @param mainPart - For wiki links: full link content. For markdown links: the alt/description text
      * @param linkPath - Only used for markdown links: the URL/path part in parentheses
      * @returns Parsed components of the link:
@@ -293,18 +311,18 @@ export class LinkService {
             // Markdown-style: parameters come from the description (alt text), and hash comes from the URL.
             // Important: split hash before decoding so "%23" stays a literal "#" in filenames.
             const [rawPathWithoutHash, rawHash] = linkPath.split('#', 2);
-            const hash = rawHash ? `#${rawHash}` : "";
+            const hash = rawHash ? `#${rawHash}` : '';
             const path = safeDecodeURIComponent(rawPathWithoutHash);
-            const [, ...params] = mainPart.split("|");
+            const [, ...params] = mainPart.split('|');
 
             return { path, hash, params, isWikiStyle: false };
         }
 
         // Wiki-style: parameters come from the piped segments; hash can appear either in the first segment
         // ("file#heading|100") or (less commonly) at the end of the last parameter ("file|100#heading").
-        const [pathAndMaybeHash, ...rawParams] = mainPart.split("|");
+        const [pathAndMaybeHash, ...rawParams] = mainPart.split('|');
         let path = pathAndMaybeHash;
-        let hash = "";
+        let hash = '';
         const hashIndex = pathAndMaybeHash.indexOf('#');
         if (hashIndex >= 0) {
             path = pathAndMaybeHash.substring(0, hashIndex);
@@ -329,24 +347,24 @@ export class LinkService {
     /**
      * Builds a link path by combining the components of an ImageLink.
      * Used to reconstruct both wiki-style and markdown-style image links.
-     * 
+     *
      * Examples:
      * - Input: { path: "image.png", params: ["100"], hash: "#heading" }
      *   Output: "image.png|100#heading"
-     * 
+     *
      * - Input: { path: "image.png", params: [], hash: "" }
      *   Output: "image.png"
-     * 
+     *
      * - Input: { path: "subfolder/image.png", params: ["200", "left"], hash: "#section" }
      *   Output: "subfolder/image.png|200|left#section"
-     * 
+     *
      * @param link - The ImageLink object containing path, parameters, and hash
      * @returns The reconstructed link path with parameters and hash (if any)
      */
     buildLinkPath(link: ImageLink, encode = false): string {
         // Join parameters with | if there are any
         // e.g., params ["100", "left"] becomes "|100|left"
-        const paramsStr = link.params.length > 0 ? `|${link.params.join("|")}` : "";
+        const paramsStr = link.params.length > 0 ? `|${link.params.join('|')}` : '';
 
         // For markdown links, we may need to encode the path
         let finalPath = link.path;
@@ -355,7 +373,10 @@ export class LinkService {
             // We need to encode the path but preserve the directory separators
             // This handles spaces, parentheses, brackets, and other special characters
             // e.g., "Images & Files/my image (1).png" → "Images%20%26%20Files/my%20image%20(1).png"
-            finalPath = link.path.split('/').map((segment) => this.encodeMarkdownPathSegment(segment)).join('/');
+            finalPath = link.path
+                .split('/')
+                .map(segment => this.encodeMarkdownPathSegment(segment))
+                .join('/');
         }
 
         // Combine path + parameters + hash
@@ -370,7 +391,6 @@ export class LinkService {
      * @returns Promise<boolean> - True if any changes were made, false otherwise
      */
     async updateImageLinks(activeFile: TFile, imageFile: TFile, transform: (params: string[]) => string[]): Promise<boolean> {
-
         if (activeFile.path === imageFile.path) {
             return false;
         }
@@ -378,7 +398,7 @@ export class LinkService {
         let didChange = false;
 
         try {
-            await this.plugin.app.vault.process(activeFile, (data) => {
+            await this.plugin.app.vault.process(activeFile, data => {
                 // Extract frontmatter and content from the latest file contents to avoid overwriting concurrent edits.
                 const { frontmatter, content } = this.splitFrontmatter(data);
 
@@ -404,7 +424,7 @@ export class LinkService {
         let didChange = false;
 
         try {
-            await this.plugin.app.vault.process(activeFile, (data) => {
+            await this.plugin.app.vault.process(activeFile, data => {
                 const { frontmatter, content } = this.splitFrontmatter(data);
 
                 const replacedText = this.updateExternalLinks(content, imageUrl, transform);
@@ -440,7 +460,9 @@ export class LinkService {
      * Uses the same robust markdown scanning logic as link updates.
      */
     findCurrentImageWidthInText(activeFile: TFile, imageFile: TFile, text: string): number | null {
+        const codeRanges = markdownCodeRanges(text);
         for (const match of text.matchAll(WIKILINK_IMAGE_REGEX)) {
+            if (overlapsRange(codeRanges, match.index ?? 0, (match.index ?? 0) + match[0].length)) continue;
             const [, linkInner] = match;
             const link = this.parseLinkComponents(linkInner);
             if (!this.resolveLink(link.path, activeFile, imageFile)) continue;
@@ -470,7 +492,7 @@ export class LinkService {
         this.scanMarkdownImageLinks(text, ({ description, linkPath }) => {
             if (foundWidth !== null) return;
             if (!this.isSameExternalUrl(linkPath, imageUrl)) return;
-            const [, ...params] = description.split("|");
+            const [, ...params] = description.split('|');
             const sizeParam = findLastObsidianImageSizeParam(params);
             if (sizeParam) foundWidth = sizeParam.width;
         });
@@ -498,14 +520,14 @@ export class LinkService {
 
         try {
             // Do all parsing and replacement inside vault.process() to avoid overwriting concurrent edits.
-            await this.plugin.app.vault.process(activeFile, (data) => {
+            await this.plugin.app.vault.process(activeFile, data => {
                 // Extract frontmatter and content from the latest file contents.
                 const { frontmatter, content } = this.splitFrontmatter(data);
 
                 let replacedText = content;
 
                 // Remove wiki-style links (![[image.png|100]])
-                replacedText = replacedText.replace(WIKILINK_IMAGE_REGEX, (match: string, linkInner: string) => {
+                replacedText = this.replaceWikiImageLinks(replacedText, (match: string, linkInner: string) => {
                     const link = this.parseLinkComponents(linkInner);
                     return this.resolveLink(link.path, activeFile, imageFile) ? '' : match;
                 });

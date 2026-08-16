@@ -38,10 +38,10 @@ export default tseslint.config(
             'prefer-const': 'error',
             'no-var': 'error',
             'no-empty': 'error',
-            
+
             // Upgrade obsidianmd rules from warn to error
             'obsidianmd/prefer-file-manager-trash-file': 'error',
-            
+
             // Disable import rules that don't apply to Obsidian plugins
             'import/no-nodejs-modules': 'off',
 
@@ -56,6 +56,21 @@ export default tseslint.config(
             'prefer-object-spread': 'warn', // Use {...obj} instead of Object.assign()
             curly: ['warn', 'multi-line'], // Require curly braces for multi-line blocks
             'no-else-return': 'warn' // Remove unnecessary else after return
+        }
+    },
+    {
+        files: ['tests/**/*.ts'],
+        languageOptions: {
+            ecmaVersion: 2020,
+            sourceType: 'module',
+            globals: {
+                ...globals.node
+            },
+            parserOptions: {
+                // Separate project so tests type-check against the obsidian stub,
+                // matching how Vitest resolves the module at runtime.
+                project: './tsconfig.eslint.json'
+            }
         }
     }
 );
