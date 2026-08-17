@@ -1,6 +1,6 @@
 {
   "name": "pixel-perfect-image",
-  "version": "1.0.28",
+  "version": "1.0.29",
   "description": "Pixel perfect 100% image resizing, copy to clipboard, show images in Finder/Explorer, open them in the default app, and much more.",
   "main": "main.js",
   "engines": {
