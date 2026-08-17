@@ -66,7 +66,6 @@ export const STRINGS_JA = {
     // Settings
     settings: {
         headings: {
-            menuOptions: '個別メニューオプションの切り替え',
             mousewheelZoom: 'マウスホイールズーム',
             advanced: '高度な設定'
         },
@@ -77,37 +76,16 @@ export const STRINGS_JA = {
                 desc: '最新の変更点や改善点を確認できます。',
                 buttonText: '最近の更新を見る'
             },
+            contextMenu: {
+                name: 'コンテキストメニュー',
+                desc: '表示する項目を選択し、ファイル操作の順序を変更します',
+                shownCount: '{total}件中{shown}件を表示',
+                fileOperations: 'ファイル操作',
+                restoreDefaultOrder: 'デフォルトの順序に戻す'
+            },
             fileInfo: {
                 name: 'ファイル情報',
                 desc: 'メニューの上部にファイル名とサイズを表示します'
-            },
-            showInExplorer: {
-                name: 'Show in Finder/エクスプローラー',
-                desc: 'システムファイルエクスプローラーで画像を表示するオプションを表示します'
-            },
-            renameImage: {
-                name: '画像名を変更',
-                desc: '画像ファイル名を変更するオプションを表示します'
-            },
-            deleteImage: {
-                name: '画像とリンクを削除',
-                desc: '画像ファイルとリンクの両方を削除するオプションを表示します'
-            },
-            openInNewTab: {
-                name: '新しいタブで開く',
-                desc: '画像を新しいタブで開くオプションを表示します'
-            },
-            openToTheRight: {
-                name: '右に開く',
-                desc: '画像を右側の分割で開くオプションを表示します'
-            },
-            openInNewWindow: {
-                name: '新しいウィンドウで開く',
-                desc: '画像を新しいウィンドウで開くオプションを表示します'
-            },
-            openInDefaultApp: {
-                name: 'デフォルトアプリで開く',
-                desc: '画像をデフォルトアプリで開くオプションを表示します'
             },
             resizeOptions: {
                 name: 'リサイズオプション',

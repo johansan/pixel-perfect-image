@@ -10,10 +10,6 @@ export function getLanguage(): string {
     return 'en';
 }
 
-export function requireApiVersion(_version: string): boolean {
-    return true;
-}
-
 export class Notice {
     static readonly instances: Notice[] = [];
 

@@ -66,7 +66,6 @@ export const STRINGS_ZH = {
     // Settings
     settings: {
         headings: {
-            menuOptions: '切换单个菜单选项',
             mousewheelZoom: '鼠标滚轮缩放',
             advanced: '高级'
         },
@@ -77,37 +76,16 @@ export const STRINGS_ZH = {
                 desc: '查看最新的更改与改进。',
                 buttonText: '查看最近更新'
             },
+            contextMenu: {
+                name: '上下文菜单',
+                desc: '选择要显示的项目，并调整文件操作的顺序',
+                shownCount: '已显示 {shown}/{total} 项',
+                fileOperations: '文件操作',
+                restoreDefaultOrder: '恢复默认顺序'
+            },
             fileInfo: {
                 name: '文件信息',
                 desc: '在菜单顶部显示文件名和尺寸'
-            },
-            showInExplorer: {
-                name: 'Show in Finder/资源管理器',
-                desc: '显示在系统文件资源管理器中显示图像的选项'
-            },
-            renameImage: {
-                name: '重命名图像',
-                desc: '显示重命名图像文件的选项'
-            },
-            deleteImage: {
-                name: '删除图像和链接',
-                desc: '显示删除图像文件和链接的选项'
-            },
-            openInNewTab: {
-                name: '在新标签页中打开',
-                desc: '显示在新标签页中打开图像的选项'
-            },
-            openToTheRight: {
-                name: '在右侧打开',
-                desc: '显示在右侧分屏中打开图像的选项'
-            },
-            openInNewWindow: {
-                name: '在新窗口中打开',
-                desc: '显示在新的应用窗口中打开图像的选项'
-            },
-            openInDefaultApp: {
-                name: '用默认应用打开',
-                desc: '显示用默认应用打开图像的选项'
             },
             resizeOptions: {
                 name: '调整大小选项',

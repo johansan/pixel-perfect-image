@@ -66,7 +66,6 @@ export const STRINGS_ES = {
     // Settings
     settings: {
         headings: {
-            menuOptions: 'Alternar opciones individuales del menú',
             mousewheelZoom: 'Zoom con rueda del ratón',
             advanced: 'Avanzado'
         },
@@ -77,37 +76,16 @@ export const STRINGS_ES = {
                 desc: 'Consulta los últimos cambios y mejoras.',
                 buttonText: 'Ver actualizaciones recientes'
             },
+            contextMenu: {
+                name: 'Menú contextual',
+                desc: 'Elige qué elementos se muestran y reordena las operaciones de archivo.',
+                shownCount: '{shown} de {total} visibles',
+                fileOperations: 'Operaciones de archivo',
+                restoreDefaultOrder: 'Restaurar orden predeterminado'
+            },
             fileInfo: {
                 name: 'Información del archivo',
                 desc: 'Mostrar nombre del archivo y dimensiones en la parte superior del menú'
-            },
-            showInExplorer: {
-                name: 'Show in Finder/Explorador',
-                desc: 'Mostrar opción para revelar imagen en el explorador de archivos del sistema'
-            },
-            renameImage: {
-                name: 'Renombrar imagen',
-                desc: 'Mostrar opción para renombrar archivo de imagen'
-            },
-            deleteImage: {
-                name: 'Eliminar imagen y enlace',
-                desc: 'Mostrar opción para eliminar tanto el archivo de imagen como el enlace'
-            },
-            openInNewTab: {
-                name: 'Abrir en nueva pestaña',
-                desc: 'Mostrar opción para abrir imagen en nueva pestaña'
-            },
-            openToTheRight: {
-                name: 'Abrir a la derecha',
-                desc: 'Mostrar opción para abrir imagen en una división a la derecha'
-            },
-            openInNewWindow: {
-                name: 'Abrir en nueva ventana',
-                desc: 'Mostrar opción para abrir imagen en una nueva ventana de la aplicación'
-            },
-            openInDefaultApp: {
-                name: 'Abrir con aplicación predeterminada',
-                desc: 'Mostrar opción para abrir imagen con aplicación predeterminada'
             },
             resizeOptions: {
                 name: 'Opciones de redimensionado',

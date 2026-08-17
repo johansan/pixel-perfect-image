@@ -1,21 +1,30 @@
-import { App, PluginSettingTab, Setting, Platform, requireApiVersion, type SettingDefinitionItem, type SliderComponent } from 'obsidian';
-import PixelPerfectImage from '../main';
+import { Platform, PluginSettingTab } from 'obsidian';
+import type { App, ExtraButtonComponent, Setting, SettingDefinitionItem, SliderComponent } from 'obsidian';
+import type PixelPerfectImage from '../main';
 import { strings } from '../i18n';
-import { createSettingGroupFactory } from './settingGroups';
-import { wireToggleSettingWithSubSettings } from './subSettings';
+
+const FILE_OPERATION_IDS = [
+    'openInNewTab',
+    'openToTheRight',
+    'openInNewWindow',
+    'openInDefaultApp',
+    'showInExplorer',
+    'renameImage',
+    'deleteImage'
+] as const;
+
+export type FileOperationId = (typeof FILE_OPERATION_IDS)[number];
+
+export interface FileOperationConfig {
+    id: FileOperationId;
+    visible: boolean;
+}
 
 export interface PixelPerfectImageSettings {
-    // Main settings
-    toggleIndividualMenuOptions: boolean;
-    // Menu sub-options (shown when toggle is enabled)
+    // Context menu settings
     showFileInfo: boolean;
-    showShowInFileExplorer: boolean;
-    showRenameOption: boolean;
-    showDeleteImageOption: boolean;
-    showOpenInNewTab: boolean;
-    showOpenToTheRight: boolean;
-    showOpenInNewWindow: boolean;
-    showOpenInDefaultApp: boolean;
+    fileOperations: FileOperationConfig[];
+
     // Other main settings
     customResizeSizes: string[]; // Array of sizes like ['25%', '50%', '100%', '600px']
     cmdCtrlClickBehavior: 'do-nothing' | 'open-in-new-tab' | 'open-in-default-app';
@@ -33,18 +42,15 @@ export interface PixelPerfectImageSettings {
     lastShownVersion: string;
 }
 
+function createDefaultFileOperations(): FileOperationConfig[] {
+    return FILE_OPERATION_IDS.map(id => ({ id, visible: true }));
+}
+
 export const DEFAULT_SETTINGS: PixelPerfectImageSettings = {
-    // Main settings
-    toggleIndividualMenuOptions: false,
-    // Menu sub-options
+    // Context menu defaults
     showFileInfo: true,
-    showShowInFileExplorer: true,
-    showRenameOption: true,
-    showDeleteImageOption: true,
-    showOpenInNewTab: true,
-    showOpenToTheRight: true,
-    showOpenInNewWindow: true,
-    showOpenInDefaultApp: true,
+    fileOperations: createDefaultFileOperations(),
+
     // Other main settings
     customResizeSizes: ['25%', '50%', '100%'], // Default percentage sizes
     cmdCtrlClickBehavior: 'do-nothing',
@@ -62,6 +68,40 @@ export const DEFAULT_SETTINGS: PixelPerfectImageSettings = {
     lastShownVersion: ''
 };
 
+const fileOperationIdSet = new Set<string>(FILE_OPERATION_IDS);
+
+function isFileOperationId(value: unknown): value is FileOperationId {
+    return typeof value === 'string' && fileOperationIdSet.has(value);
+}
+
+/**
+ * Normalizes persisted file-operation settings without mutating the input.
+ * Invalid and duplicate entries are discarded, then missing operations are appended
+ * in default order so newly introduced operations remain discoverable.
+ */
+export function reconcileFileOperations(value: unknown): FileOperationConfig[] {
+    if (!Array.isArray(value)) return createDefaultFileOperations();
+
+    const reconciled: FileOperationConfig[] = [];
+    const seen = new Set<FileOperationId>();
+
+    for (const entry of value) {
+        if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) continue;
+
+        const { id, visible } = entry as Record<string, unknown>;
+        if (!isFileOperationId(id) || typeof visible !== 'boolean' || seen.has(id)) continue;
+
+        seen.add(id);
+        reconciled.push({ id, visible });
+    }
+
+    for (const id of FILE_OPERATION_IDS) {
+        if (!seen.has(id)) reconciled.push({ id, visible: true });
+    }
+
+    return reconciled;
+}
+
 type BooleanSettingKey = {
     [K in keyof PixelPerfectImageSettings]-?: PixelPerfectImageSettings[K] extends boolean ? K : never;
 }[keyof PixelPerfectImageSettings];
@@ -72,50 +112,11 @@ interface ToggleSettingSpec {
     desc: string;
 }
 
-const MENU_OPTIONS_DESCRIPTION = 'Show settings to toggle individual menu items';
-
-const MENU_OPTION_TOGGLE_SETTINGS = [
-    {
-        key: 'showFileInfo',
-        name: strings.settings.items.fileInfo.name,
-        desc: strings.settings.items.fileInfo.desc
-    },
-    {
-        key: 'showShowInFileExplorer',
-        name: strings.settings.items.showInExplorer.name,
-        desc: strings.settings.items.showInExplorer.desc
-    },
-    {
-        key: 'showRenameOption',
-        name: strings.settings.items.renameImage.name,
-        desc: strings.settings.items.renameImage.desc
-    },
-    {
-        key: 'showDeleteImageOption',
-        name: strings.settings.items.deleteImage.name,
-        desc: strings.settings.items.deleteImage.desc
-    },
-    {
-        key: 'showOpenInNewTab',
-        name: strings.settings.items.openInNewTab.name,
-        desc: strings.settings.items.openInNewTab.desc
-    },
-    {
-        key: 'showOpenToTheRight',
-        name: strings.settings.items.openToTheRight.name,
-        desc: strings.settings.items.openToTheRight.desc
-    },
-    {
-        key: 'showOpenInNewWindow',
-        name: strings.settings.items.openInNewWindow.name,
-        desc: strings.settings.items.openInNewWindow.desc
-    },
-    {
-        key: 'showOpenInDefaultApp',
-        name: strings.settings.items.openInDefaultApp.name,
-        desc: strings.settings.items.openInDefaultApp.desc
-    }
-] as const satisfies readonly ToggleSettingSpec[];
+const FILE_INFO_SETTING = {
+    key: 'showFileInfo',
+    name: strings.settings.items.fileInfo.name,
+    desc: strings.settings.items.fileInfo.desc
+} as const satisfies ToggleSettingSpec;
 
 const ENABLE_WHEEL_ZOOM_SETTING = {
     key: 'enableWheelZoom',
@@ -129,38 +130,14 @@ const INVERT_SCROLL_SETTING = {
     desc: strings.settings.items.invertScroll.desc
 } as const satisfies ToggleSettingSpec;
 
-const ADVANCED_TOGGLE_SETTINGS = [
-    {
-        key: 'confirmBeforeDelete',
-        name: strings.settings.items.confirmDelete.name,
-        desc: strings.settings.items.confirmDelete.desc
-    }
-] as const satisfies readonly ToggleSettingSpec[];
+const CONFIRM_DELETE_SETTING = {
+    key: 'confirmBeforeDelete',
+    name: strings.settings.items.confirmDelete.name,
+    desc: strings.settings.items.confirmDelete.desc
+} as const satisfies ToggleSettingSpec;
 
-const BOOLEAN_CONTROL_KEYS = [
-    'toggleIndividualMenuOptions',
-    ...MENU_OPTION_TOGGLE_SETTINGS.map(setting => setting.key),
-    ENABLE_WHEEL_ZOOM_SETTING.key,
-    INVERT_SCROLL_SETTING.key,
-    ...ADVANCED_TOGGLE_SETTINGS.map(setting => setting.key)
-] as const;
-
-type BooleanControlKey = (typeof BOOLEAN_CONTROL_KEYS)[number];
-
-const DIRECT_CONTROL_KEYS = [...BOOLEAN_CONTROL_KEYS, 'cmdCtrlClickBehavior', 'wheelModifierKey', 'wheelZoomPercentage'] as const;
-
-type DirectControlKey = (typeof DIRECT_CONTROL_KEYS)[number];
-
-const booleanControlKeySet = new Set<string>(BOOLEAN_CONTROL_KEYS);
-const directControlKeySet = new Set<string>(DIRECT_CONTROL_KEYS);
-
-function isBooleanControlKey(key: string): key is BooleanControlKey {
-    return booleanControlKeySet.has(key);
-}
-
-function isDirectControlKey(key: string): key is DirectControlKey {
-    return directControlKeySet.has(key);
-}
+const FILE_OPERATION_CONTROL_PREFIX = 'fileOp.';
+const CONTEXT_MENU_ITEM_COUNT = FILE_OPERATION_IDS.length + 1;
 
 function createToggleDefinition(setting: ToggleSettingSpec) {
     return {
@@ -170,39 +147,46 @@ function createToggleDefinition(setting: ToggleSettingSpec) {
     };
 }
 
-function applyNativeSliderDisplayFormat(slider: SliderComponent, formatValue: (value: number) => string): void {
-    const setDisplayFormat: unknown = Reflect.get(slider, 'setDisplayFormat');
-    if (typeof setDisplayFormat === 'function') {
-        Reflect.apply(setDisplayFormat, slider, [formatValue]);
+function getFileOperationControlId(key: string): FileOperationId | null {
+    if (!key.startsWith(FILE_OPERATION_CONTROL_PREFIX)) return null;
+
+    const id = key.slice(FILE_OPERATION_CONTROL_PREFIX.length);
+    return isFileOperationId(id) ? id : null;
+}
+
+function getFileOperationName(id: FileOperationId): string {
+    switch (id) {
+        case 'openInNewTab':
+            return strings.menu.openInNewTab;
+        case 'openToTheRight':
+            return strings.menu.openToTheRight;
+        case 'openInNewWindow':
+            return strings.menu.openInNewWindow;
+        case 'openInDefaultApp':
+            return strings.menu.openInDefaultApp;
+        case 'showInExplorer':
+            return Platform.isMacOS ? strings.menu.showInFinder : strings.menu.showInExplorer;
+        case 'renameImage':
+            return strings.menu.renameImage;
+        case 'deleteImage':
+            return strings.menu.deleteImageAndLink;
     }
 }
 
-function configureToggleSetting(
-    setting: Setting,
-    settings: PixelPerfectImageSettings,
-    spec: ToggleSettingSpec,
-    onChange: () => void
-): void {
-    setting
-        .setName(spec.name)
-        .setDesc(spec.desc)
-        .addToggle(toggle =>
-            toggle.setValue(settings[spec.key]).onChange(value => {
-                settings[spec.key] = value;
-                onChange();
-            })
-        );
+function hasDefaultFileOperationOrder(operations: readonly FileOperationConfig[]): boolean {
+    return (
+        operations.length === FILE_OPERATION_IDS.length &&
+        operations.every((operation, index) => operation.id === FILE_OPERATION_IDS[index])
+    );
+}
+
+function formatContextMenuDisplayValue(shown: number): string {
+    return strings.settings.items.contextMenu.shownCount
+        .replace('{shown}', shown.toString())
+        .replace('{total}', CONTEXT_MENU_ITEM_COUNT.toString());
 }
 
 export type ResizeSizeUnit = 'px' | '%';
-
-function isCmdCtrlClickBehavior(value: string): value is PixelPerfectImageSettings['cmdCtrlClickBehavior'] {
-    return value === 'do-nothing' || value === 'open-in-new-tab' || value === 'open-in-default-app';
-}
-
-function isWheelModifierKey(value: string): value is PixelPerfectImageSettings['wheelModifierKey'] {
-    return value === 'Alt' || value === 'Ctrl' || value === 'Shift';
-}
 
 export function parseResizeSize(value: string): { amount: number; unit: ResizeSizeUnit } | null {
     const match = value.trim().match(/^([1-9]\d*)(px|%)$/i);
@@ -227,20 +211,17 @@ export function sanitizeResizeSizes(values: string[]): string[] {
 }
 
 export class PixelPerfectImageSettingTab extends PluginSettingTab {
-    plugin: PixelPerfectImage;
+    // PluginSettingTab already stores this reference. `declare` narrows its type without
+    // emitting a class field that would shadow the base implementation's property.
+    declare plugin: PixelPerfectImage;
+    private fileOperationResetButton: ExtraButtonComponent | null = null;
 
     constructor(app: App, plugin: PixelPerfectImage) {
         super(app, plugin);
-        this.plugin = plugin;
-        if (typeof requireApiVersion === 'function' && requireApiVersion('1.11.0')) {
-            this.icon = 'image';
-        }
+        this.icon = 'image';
     }
 
     getSettingDefinitions(): SettingDefinitionItem[] {
-        if (!requireApiVersion('1.13.0')) return [];
-
-        const menuOptionsVisible = () => this.plugin.settings.toggleIndividualMenuOptions;
         const cmdKey = Platform.isMacOS ? 'CMD' : 'CTRL';
 
         return [
@@ -256,14 +237,31 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
                 }
             },
             {
-                name: strings.settings.headings.menuOptions,
-                desc: MENU_OPTIONS_DESCRIPTION,
-                control: { type: 'toggle', key: 'toggleIndividualMenuOptions' }
-            },
-            {
-                type: 'group',
-                visible: menuOptionsVisible,
-                items: MENU_OPTION_TOGGLE_SETTINGS.map(createToggleDefinition)
+                type: 'page',
+                name: strings.settings.items.contextMenu.name,
+                desc: strings.settings.items.contextMenu.desc,
+                displayValue: () => {
+                    const shown =
+                        Number(this.plugin.settings.showFileInfo) +
+                        this.plugin.settings.fileOperations.filter(operation => operation.visible).length;
+                    return formatContextMenuDisplayValue(shown);
+                },
+                items: [
+                    createToggleDefinition(FILE_INFO_SETTING),
+                    {
+                        type: 'list',
+                        heading: strings.settings.items.contextMenu.fileOperations,
+                        extraButtons: [button => this.configureFileOperationResetButton(button)],
+                        items: this.plugin.settings.fileOperations.map(operation => ({
+                            name: getFileOperationName(operation.id),
+                            control: {
+                                type: 'toggle',
+                                key: `${FILE_OPERATION_CONTROL_PREFIX}${operation.id}`
+                            }
+                        })),
+                        onReorder: (oldIndex, newIndex) => this.reorderFileOperations(oldIndex, newIndex)
+                    }
+                ]
             },
             {
                 name: strings.settings.items.resizeOptions.name,
@@ -310,38 +308,7 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
                     {
                         name: strings.settings.items.zoomStepSize.name,
                         desc: strings.settings.items.zoomStepSize.desc,
-                        render: setting => {
-                            let updateSliderValue: ((value: number) => void) | undefined;
-
-                            setting
-                                .addExtraButton(button => {
-                                    button
-                                        .setIcon('reset')
-                                        .setTooltip(strings.settings.items.zoomStepSize.resetToDefault)
-                                        .onClick(() => {
-                                            const defaultValue = DEFAULT_SETTINGS.wheelZoomPercentage;
-                                            this.plugin.settings.wheelZoomPercentage = defaultValue;
-                                            updateSliderValue?.(defaultValue);
-                                            void this.plugin
-                                                .saveSettings()
-                                                .catch(error => console.error('Failed to save settings:', error));
-                                        });
-                                })
-                                .addSlider(slider => {
-                                    updateSliderValue = value => {
-                                        slider.setValue(value);
-                                    };
-
-                                    const configuredSlider = slider.setLimits(1, 100, 1).setValue(this.plugin.settings.wheelZoomPercentage);
-                                    applyNativeSliderDisplayFormat(configuredSlider, value => `${value}%`);
-                                    configuredSlider.onChange(value => {
-                                        this.plugin.settings.wheelZoomPercentage = value;
-                                        void this.plugin
-                                            .requestSaveSettings()
-                                            .catch(error => console.error('Failed to save settings:', error));
-                                    });
-                                });
-                        }
+                        render: setting => this.renderWheelZoomSlider(setting)
                     },
                     createToggleDefinition(INVERT_SCROLL_SETTING)
                 ]
@@ -349,228 +316,147 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
             {
                 type: 'group',
                 heading: strings.settings.headings.advanced,
-                items: ADVANCED_TOGGLE_SETTINGS.map(createToggleDefinition)
+                items: [createToggleDefinition(CONFIRM_DELETE_SETTING)]
             }
         ];
     }
 
     getControlValue(key: string): unknown {
-        if (key === 'customResizeSizes') {
-            return this.plugin.settings.customResizeSizes.join(', ');
-        }
-        return isDirectControlKey(key) ? this.plugin.settings[key] : undefined;
+        if (key === 'customResizeSizes') return this.plugin.settings.customResizeSizes.join(', ');
+
+        const operationId = getFileOperationControlId(key);
+        if (operationId) return this.plugin.settings.fileOperations.find(operation => operation.id === operationId)?.visible;
+
+        return super.getControlValue(key);
     }
 
     async setControlValue(key: string, value: unknown): Promise<void> {
-        const settings = this.plugin.settings;
-        let shouldDebounceSave = false;
-
-        if (isBooleanControlKey(key)) {
+        const operationId = getFileOperationControlId(key);
+        if (operationId) {
             if (typeof value !== 'boolean') return;
-            settings[key] = value;
-        } else if (key === 'customResizeSizes') {
+
+            const operation = this.plugin.settings.fileOperations.find(candidate => candidate.id === operationId);
+            if (!operation) return;
+
+            operation.visible = value;
+            this.refreshFileOperationResetButtonState();
+            this.updateThenSave();
+            return;
+        }
+
+        if (key === 'showFileInfo') {
+            if (typeof value !== 'boolean') return;
+
+            this.plugin.settings.showFileInfo = value;
+            this.updateThenSave();
+            return;
+        }
+
+        if (key === 'customResizeSizes') {
             if (typeof value !== 'string') return;
-            settings.customResizeSizes = sanitizeResizeSizes(value.split(','));
-            shouldDebounceSave = true;
-        } else {
-            if (key === 'cmdCtrlClickBehavior') {
-                if (typeof value !== 'string' || !isCmdCtrlClickBehavior(value)) return;
-                settings.cmdCtrlClickBehavior = value;
-            } else if (key === 'wheelModifierKey') {
-                if (typeof value !== 'string' || !isWheelModifierKey(value)) return;
-                settings.wheelModifierKey = value;
-            } else if (key === 'wheelZoomPercentage') {
-                if (typeof value !== 'number' || !Number.isFinite(value)) return;
-                settings.wheelZoomPercentage = Math.min(100, Math.max(1, Math.round(value)));
-            } else {
-                return;
-            }
-        }
 
-        if (shouldDebounceSave) {
+            this.plugin.settings.customResizeSizes = sanitizeResizeSizes(value.split(','));
             await this.plugin.requestSaveSettings();
-        } else {
-            await this.plugin.saveSettings();
+            this.refreshDomState();
+            return;
         }
-        this.refreshNativeSettingsDomState();
+
+        await super.setControlValue(key, value);
+        this.refreshDomState();
     }
 
-    display(): void {
-        this.renderSettings();
+    private configureFileOperationResetButton(button: ExtraButtonComponent): void {
+        this.fileOperationResetButton = button;
+
+        button
+            .setIcon('lucide-rotate-ccw')
+            .setTooltip(strings.settings.items.contextMenu.restoreDefaultOrder)
+            .onClick(() => {
+                if (hasDefaultFileOperationOrder(this.plugin.settings.fileOperations)) return;
+
+                const visibilityById = new Map(
+                    this.plugin.settings.fileOperations.map(operation => [operation.id, operation.visible] as const)
+                );
+                this.plugin.settings.fileOperations = FILE_OPERATION_IDS.map(id => ({
+                    id,
+                    visible: visibilityById.get(id) ?? true
+                }));
+
+                this.refreshFileOperationResetButtonState();
+                this.updateThenSave();
+            });
+
+        this.refreshFileOperationResetButtonState();
     }
 
-    private renderSettings(): void {
-        const { containerEl } = this;
-        containerEl.empty();
+    private refreshFileOperationResetButtonState(): void {
+        const isResetDisabled = hasDefaultFileOperationOrder(this.plugin.settings.fileOperations);
+        this.fileOperationResetButton?.extraSettingsEl.setAttribute('aria-disabled', isResetDisabled.toString());
+    }
 
-        const createGroup = createSettingGroupFactory(containerEl);
-        const topGroup = createGroup(undefined);
+    private reorderFileOperations(oldIndex: number, newIndex: number): void {
+        if (oldIndex === newIndex) return;
 
-        const saveSettings = async (): Promise<void> => {
-            try {
-                await this.plugin.saveSettings();
-            } catch (error) {
-                console.error('Failed to save settings:', error);
-            }
+        const reordered = [...this.plugin.settings.fileOperations];
+        const [operation] = reordered.splice(oldIndex, 1);
+        if (!operation) return;
+
+        reordered.splice(newIndex, 0, operation);
+        this.plugin.settings.fileOperations = reordered;
+        this.refreshFileOperationResetButtonState();
+        this.updateThenSave();
+    }
+
+    private renderWheelZoomSlider(setting: Setting): void {
+        const initialValue = this.plugin.settings.wheelZoomPercentage;
+        const defaultValue = DEFAULT_SETTINGS.wheelZoomPercentage;
+        let sliderComponent: SliderComponent | null = null;
+        let resetButtonComponent: ExtraButtonComponent | null = null;
+        let isResetDisabled = initialValue === defaultValue;
+
+        const updateResetButton = (value: number): void => {
+            isResetDisabled = value === defaultValue;
+            resetButtonComponent?.extraSettingsEl.setAttribute('aria-disabled', isResetDisabled.toString());
         };
-
-        const requestSaveSettings = (): void => {
+        const applyValue = (value: number): void => {
+            this.plugin.settings.wheelZoomPercentage = value;
+            updateResetButton(value);
             void this.plugin.requestSaveSettings().catch(error => console.error('Failed to save settings:', error));
         };
 
-        const pluginVersion = this.plugin.manifest.version;
-        topGroup.addSetting(setting => {
-            setting
-                .setName(strings.settings.items.whatsNew.name.replace('{version}', pluginVersion))
-                .setDesc(strings.settings.items.whatsNew.desc)
-                .addButton(button =>
-                    button.setButtonText(strings.settings.items.whatsNew.buttonText).onClick(() => {
-                        void this.openWhatsNewModal();
-                    })
-                );
-        });
+        // Add the reset before the slider to match Obsidian's reset, value, and slider order.
+        setting.addExtraButton(button => {
+            resetButtonComponent = button
+                .setIcon('lucide-rotate-ccw')
+                .setTooltip(strings.settings.items.zoomStepSize.resetToDefault)
+                .onClick(() => {
+                    if (!sliderComponent || isResetDisabled) return;
 
-        // Main toggle for individual menu options
-        const menuOptionsSetting = topGroup.addSetting(setting => {
-            setting.setName(strings.settings.headings.menuOptions).setDesc(MENU_OPTIONS_DESCRIPTION);
-        });
-
-        const menuSubSettingsEl = wireToggleSettingWithSubSettings(
-            menuOptionsSetting,
-            () => this.plugin.settings.toggleIndividualMenuOptions,
-            value => {
-                this.plugin.settings.toggleIndividualMenuOptions = value;
-                void saveSettings();
-            }
-        );
-
-        for (const spec of MENU_OPTION_TOGGLE_SETTINGS) {
-            configureToggleSetting(new Setting(menuSubSettingsEl), this.plugin.settings, spec, () => void saveSettings());
-        }
-
-        topGroup.addSetting(setting => {
-            setting
-                .setName(strings.settings.items.resizeOptions.name)
-                .setDesc(strings.settings.items.resizeOptions.desc)
-                .addText(text => {
-                    text.setPlaceholder(strings.settings.items.resizeOptions.placeholder)
-                        .setValue(this.plugin.settings.customResizeSizes.join(', '))
-                        .onChange(value => {
-                            const sizes = sanitizeResizeSizes(value.split(','));
-                            this.plugin.settings.customResizeSizes = sizes;
-                            requestSaveSettings();
-                        });
+                    sliderComponent.setValue(defaultValue);
+                    applyValue(defaultValue);
                 });
         });
 
-        const cmdKey = Platform.isMacOS ? 'CMD' : 'CTRL';
-        topGroup.addSetting(setting => {
-            setting
-                .setName(strings.settings.items.cmdClickBehavior.name.replace('{cmd}', cmdKey))
-                .setDesc(strings.settings.items.cmdClickBehavior.desc.replace('{cmd}', cmdKey))
-                .addDropdown(dropdown => {
-                    dropdown
-                        .addOption('do-nothing', strings.settings.items.cmdClickBehavior.options.doNothing)
-                        .addOption('open-in-new-tab', strings.settings.items.cmdClickBehavior.options.openInNewTab)
-                        .addOption('open-in-default-app', strings.settings.items.cmdClickBehavior.options.openInDefaultApp)
-                        .setValue(this.plugin.settings.cmdCtrlClickBehavior)
-                        .onChange(value => {
-                            if (!isCmdCtrlClickBehavior(value)) return;
-                            this.plugin.settings.cmdCtrlClickBehavior = value;
-                            void saveSettings();
-                        });
-                });
+        setting.addSlider(slider => {
+            sliderComponent = slider
+                .setLimits(1, 100, 1)
+                .setValue(initialValue)
+                .setInstant(false)
+                .setDisplayFormat(value => `${value}%`)
+                .onChange(applyValue);
         });
 
-        // Mousewheel zoom section
-        const mousewheelGroup = createGroup(strings.settings.headings.mousewheelZoom);
-        mousewheelGroup.addSetting(setting => {
-            configureToggleSetting(setting, this.plugin.settings, ENABLE_WHEEL_ZOOM_SETTING, () => void saveSettings());
-        });
+        updateResetButton(initialValue);
+    }
 
-        mousewheelGroup.addSetting(setting => {
-            setting
-                .setName(strings.settings.items.modifierKey.name)
-                .setDesc(strings.settings.items.modifierKey.desc)
-                .addDropdown(dropdown => {
-                    const isMac = Platform.isMacOS;
-                    dropdown
-                        .addOption(
-                            'Alt',
-                            isMac ? strings.settings.items.modifierKey.options.option : strings.settings.items.modifierKey.options.alt
-                        )
-                        .addOption('Ctrl', strings.settings.items.modifierKey.options.ctrl)
-                        .addOption('Shift', strings.settings.items.modifierKey.options.shift)
-                        .setValue(this.plugin.settings.wheelModifierKey)
-                        .onChange(value => {
-                            if (!isWheelModifierKey(value)) return;
-                            this.plugin.settings.wheelModifierKey = value;
-                            void saveSettings();
-                        });
-                });
-        });
-
-        mousewheelGroup.addSetting(setting => {
-            setting
-                .setName(strings.settings.items.zoomStepSize.name)
-                .setDesc(strings.settings.items.zoomStepSize.desc)
-                .addExtraButton(button => {
-                    button
-                        .setIcon('reset')
-                        .setTooltip(strings.settings.items.zoomStepSize.resetToDefault)
-                        .onClick(() => {
-                            this.plugin.settings.wheelZoomPercentage = DEFAULT_SETTINGS.wheelZoomPercentage;
-                            void saveSettings();
-                            this.renderSettings();
-                        });
-                })
-                .addSlider(slider => {
-                    const valueDisplay = createSpan();
-                    valueDisplay.addClass('pixel-perfect-zoom-value');
-
-                    const updateDisplay = (value: number) => {
-                        valueDisplay.setText(`${value}%`);
-                    };
-
-                    slider
-                        .setLimits(1, 100, 1) // min: 1%, max: 100%, step: 1%
-                        .setValue(this.plugin.settings.wheelZoomPercentage)
-                        .onChange(value => {
-                            updateDisplay(value);
-                            this.plugin.settings.wheelZoomPercentage = value;
-                            requestSaveSettings();
-                        });
-
-                    updateDisplay(this.plugin.settings.wheelZoomPercentage);
-                    slider.sliderEl.parentElement?.prepend(valueDisplay);
-                });
-        });
-
-        mousewheelGroup.addSetting(setting => {
-            configureToggleSetting(setting, this.plugin.settings, INVERT_SCROLL_SETTING, () => void saveSettings());
-        });
-
-        // Advanced section
-        const advancedGroup = createGroup(strings.settings.headings.advanced);
-        for (const spec of ADVANCED_TOGGLE_SETTINGS) {
-            advancedGroup.addSetting(setting => {
-                configureToggleSetting(setting, this.plugin.settings, spec, () => void saveSettings());
-            });
-        }
-
-        // Visibility handled by `wireToggleSettingWithSubSettings()`.
+    private updateThenSave(): void {
+        this.update();
+        void this.plugin.saveSettings().catch(error => console.error('Failed to save settings:', error));
     }
 
     private async openWhatsNewModal(): Promise<void> {
         const { WhatsNewModal } = await import('./WhatsNewModal');
         const { getLatestReleaseNotes } = await import('../releaseNotes');
         new WhatsNewModal(this.app, getLatestReleaseNotes()).open();
-    }
-
-    private refreshNativeSettingsDomState(): void {
-        const refreshDomState: unknown = Reflect.get(this, 'refreshDomState');
-        if (typeof refreshDomState === 'function') {
-            refreshDomState.call(this);
-        }
     }
 }

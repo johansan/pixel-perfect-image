@@ -269,7 +269,6 @@ export class MenuService {
 
             // Only add file operations on desktop
             if (!Platform.isMobile) {
-                menu.addSeparator();
                 this.addFileOperationMenuItems(menu, resolvedImage?.imgFile ?? null);
             }
         }
@@ -541,118 +540,98 @@ export class MenuService {
         if (Platform.isMobile) return;
         if (!imgFile) return;
 
+        const visibleOperations = this.plugin.settings.fileOperations.filter(operation => operation.visible);
+        if (visibleOperations.length === 0) return;
+
+        menu.addSeparator();
         const isMac = Platform.isMacOS;
-        const hasOpenLeafOption =
-            this.plugin.settings.showOpenInNewTab || this.plugin.settings.showOpenToTheRight || this.plugin.settings.showOpenInNewWindow;
 
-        // Add open in new tab option
-        if (this.plugin.settings.showOpenInNewTab) {
-            this.addMenuItem(
-                menu,
-                strings.menu.openInNewTab,
-                'lucide-file-plus',
-                async () => {
-                    await this.plugin.app.workspace.openLinkText(imgFile.path, '', true);
-                },
-                strings.notices.failedToOpenInNewTab
-            );
-        }
-
-        // Add open to the right option
-        if (this.plugin.settings.showOpenToTheRight) {
-            this.addMenuItem(
-                menu,
-                strings.menu.openToTheRight,
-                'lucide-separator-vertical',
-                async () => {
-                    const leaf = this.plugin.app.workspace.getLeaf('split', 'vertical');
-                    await leaf.openFile(imgFile);
-                    this.plugin.app.workspace.setActiveLeaf(leaf);
-                },
-                strings.notices.failedToOpenToTheRight
-            );
-        }
-
-        // Add open in new window option
-        if (this.plugin.settings.showOpenInNewWindow) {
-            this.addMenuItem(
-                menu,
-                strings.menu.openInNewWindow,
-                'lucide-app-window',
-                async () => {
-                    const leaf = this.plugin.app.workspace.getLeaf('window');
-                    await leaf.openFile(imgFile);
-                    this.plugin.app.workspace.setActiveLeaf(leaf);
-                },
-                strings.notices.failedToOpenInNewWindow
-            );
-        }
-
-        if (hasOpenLeafOption && this.plugin.settings.showOpenInDefaultApp) {
-            menu.addSeparator();
-        }
-
-        // Add open in default app option
-        if (this.plugin.settings.showOpenInDefaultApp) {
-            this.addMenuItem(
-                menu,
-                strings.menu.openInDefaultApp,
-                'image',
-                async () => {
-                    await this.plugin.fileService.openInDefaultApp(imgFile);
-                },
-                strings.notices.failedToOpenInDefaultApp
-            );
-        }
-
-        // Add separator before file operations
-        if (
-            this.plugin.settings.showShowInFileExplorer ||
-            this.plugin.settings.showRenameOption ||
-            this.plugin.settings.showDeleteImageOption
-        ) {
-            menu.addSeparator();
-        }
-
-        // Add show in system explorer option
-        if (this.plugin.settings.showShowInFileExplorer) {
-            this.addMenuItem(
-                menu,
-                isMac ? strings.menu.showInFinder : strings.menu.showInExplorer,
-                isMac ? 'lucide-app-window-mac' : 'lucide-app-window',
-                async () => {
-                    await this.plugin.fileService.showInSystemExplorer(imgFile);
-                },
-                strings.notices.failedToOpenExplorer
-            );
-        }
-
-        // Add rename option
-        if (this.plugin.settings.showRenameOption) {
-            this.addMenuItem(
-                menu,
-                strings.menu.renameImage,
-                'pencil',
-                async () => {
-                    await this.plugin.fileService.renameImage(imgFile);
-                },
-                strings.notices.failedToRenameImage
-            );
-        }
-
-        // Add delete option (last)
-        if (this.plugin.settings.showDeleteImageOption) {
-            this.addMenuItem(
-                menu,
-                strings.menu.deleteImageAndLink,
-                'lucide-trash',
-                async () => {
-                    await this.plugin.fileService.deleteImageAndLink(imgFile);
-                },
-                strings.notices.failedToDeleteImage,
-                false,
-                true
-            );
+        for (const operation of visibleOperations) {
+            switch (operation.id) {
+                case 'openInNewTab':
+                    this.addMenuItem(
+                        menu,
+                        strings.menu.openInNewTab,
+                        'lucide-file-plus',
+                        async () => {
+                            await this.plugin.app.workspace.openLinkText(imgFile.path, '', true);
+                        },
+                        strings.notices.failedToOpenInNewTab
+                    );
+                    break;
+                case 'openToTheRight':
+                    this.addMenuItem(
+                        menu,
+                        strings.menu.openToTheRight,
+                        'lucide-separator-vertical',
+                        async () => {
+                            const leaf = this.plugin.app.workspace.getLeaf('split', 'vertical');
+                            await leaf.openFile(imgFile);
+                            this.plugin.app.workspace.setActiveLeaf(leaf);
+                        },
+                        strings.notices.failedToOpenToTheRight
+                    );
+                    break;
+                case 'openInNewWindow':
+                    this.addMenuItem(
+                        menu,
+                        strings.menu.openInNewWindow,
+                        'lucide-app-window',
+                        async () => {
+                            const leaf = this.plugin.app.workspace.getLeaf('window');
+                            await leaf.openFile(imgFile);
+                            this.plugin.app.workspace.setActiveLeaf(leaf);
+                        },
+                        strings.notices.failedToOpenInNewWindow
+                    );
+                    break;
+                case 'openInDefaultApp':
+                    this.addMenuItem(
+                        menu,
+                        strings.menu.openInDefaultApp,
+                        'image',
+                        async () => {
+                            await this.plugin.fileService.openInDefaultApp(imgFile);
+                        },
+                        strings.notices.failedToOpenInDefaultApp
+                    );
+                    break;
+                case 'showInExplorer':
+                    this.addMenuItem(
+                        menu,
+                        isMac ? strings.menu.showInFinder : strings.menu.showInExplorer,
+                        isMac ? 'lucide-app-window-mac' : 'lucide-app-window',
+                        async () => {
+                            await this.plugin.fileService.showInSystemExplorer(imgFile);
+                        },
+                        strings.notices.failedToOpenExplorer
+                    );
+                    break;
+                case 'renameImage':
+                    this.addMenuItem(
+                        menu,
+                        strings.menu.renameImage,
+                        'pencil',
+                        async () => {
+                            await this.plugin.fileService.renameImage(imgFile);
+                        },
+                        strings.notices.failedToRenameImage
+                    );
+                    break;
+                case 'deleteImage':
+                    this.addMenuItem(
+                        menu,
+                        strings.menu.deleteImageAndLink,
+                        'lucide-trash',
+                        async () => {
+                            await this.plugin.fileService.deleteImageAndLink(imgFile);
+                        },
+                        strings.notices.failedToDeleteImage,
+                        false,
+                        true
+                    );
+                    break;
+            }
         }
     }
 }

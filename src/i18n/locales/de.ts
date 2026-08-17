@@ -66,7 +66,6 @@ export const STRINGS_DE = {
     // Settings
     settings: {
         headings: {
-            menuOptions: 'Einzelne Menüoptionen umschalten',
             mousewheelZoom: 'Mausrad-Zoom',
             advanced: 'Erweitert'
         },
@@ -77,37 +76,16 @@ export const STRINGS_DE = {
                 desc: 'Sieh dir die neuesten Änderungen und Verbesserungen an.',
                 buttonText: 'Neueste Updates anzeigen'
             },
+            contextMenu: {
+                name: 'Kontextmenü',
+                desc: 'Lege fest, welche Einträge angezeigt werden, und ändere die Reihenfolge der Dateiaktionen.',
+                shownCount: '{shown} von {total} angezeigt',
+                fileOperations: 'Dateiaktionen',
+                restoreDefaultOrder: 'Standardreihenfolge wiederherstellen'
+            },
             fileInfo: {
                 name: 'Dateiinformationen',
                 desc: 'Dateiname und Abmessungen oben im Menü anzeigen'
-            },
-            showInExplorer: {
-                name: 'Show in Finder/Explorer',
-                desc: 'Option zum Anzeigen des Bildes im System-Dateiexplorer anzeigen'
-            },
-            renameImage: {
-                name: 'Bild umbenennen',
-                desc: 'Option zum Umbenennen der Bilddatei anzeigen'
-            },
-            deleteImage: {
-                name: 'Bild und Link löschen',
-                desc: 'Option zum Löschen von Bilddatei und Link anzeigen'
-            },
-            openInNewTab: {
-                name: 'In neuem Tab öffnen',
-                desc: 'Option zum Öffnen des Bildes in neuem Tab anzeigen'
-            },
-            openToTheRight: {
-                name: 'Nach rechts öffnen',
-                desc: 'Option zum Öffnen des Bildes in einem rechten Split anzeigen'
-            },
-            openInNewWindow: {
-                name: 'In neuem Fenster öffnen',
-                desc: 'Option zum Öffnen des Bildes in einem neuen Anwendungsfenster anzeigen'
-            },
-            openInDefaultApp: {
-                name: 'In Standard-App öffnen',
-                desc: 'Option zum Öffnen des Bildes in Standard-App anzeigen'
             },
             resizeOptions: {
                 name: 'Größenoptionen',

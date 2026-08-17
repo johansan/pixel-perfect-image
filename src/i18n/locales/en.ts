@@ -66,7 +66,6 @@ export const STRINGS_EN = {
     // Settings
     settings: {
         headings: {
-            menuOptions: 'Toggle individual menu options',
             mousewheelZoom: 'Mousewheel zoom',
             advanced: 'Advanced'
         },
@@ -77,37 +76,16 @@ export const STRINGS_EN = {
                 desc: 'See the latest changes and improvements.',
                 buttonText: 'View recent updates'
             },
+            contextMenu: {
+                name: 'Context menu',
+                desc: 'Choose which items are shown and reorder file operations.',
+                shownCount: '{shown} of {total} shown',
+                fileOperations: 'File operations',
+                restoreDefaultOrder: 'Restore default order'
+            },
             fileInfo: {
                 name: 'File information',
                 desc: 'Show filename and dimensions at top of menu'
-            },
-            showInExplorer: {
-                name: 'Show in Finder/Explorer',
-                desc: 'Show option to reveal image in system file explorer'
-            },
-            renameImage: {
-                name: 'Rename image',
-                desc: 'Show option to rename image file'
-            },
-            deleteImage: {
-                name: 'Delete image and link',
-                desc: 'Show option to delete both image file and link'
-            },
-            openInNewTab: {
-                name: 'Open in new tab',
-                desc: 'Show option to open image in new tab'
-            },
-            openToTheRight: {
-                name: 'Open to the right',
-                desc: 'Show option to open image in a right split'
-            },
-            openInNewWindow: {
-                name: 'Open in new window',
-                desc: 'Show option to open image in a new app window'
-            },
-            openInDefaultApp: {
-                name: 'Open in default app',
-                desc: 'Show option to open image in default app'
             },
             resizeOptions: {
                 name: 'Resize options',

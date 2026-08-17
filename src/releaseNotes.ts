@@ -35,9 +35,9 @@ const RELEASE_NOTES: ReleaseNote[] = [
         version: '1.0.29',
         date: '2026-08-17',
         showOnUpdate: true,
-        new: [],
+        new: ['Context menu file operations can now be reordered in settings, with visibility controlled per item.'],
         improved: [],
-        changed: ['Removed the unused debug mode setting.'],
+        changed: ['Removed the unused debug mode setting.', 'The minimum supported Obsidian version is now 1.13.1.'],
         fixed: ['Image links inside code blocks and inline code are no longer modified when resizing or removing images.']
     },
     {

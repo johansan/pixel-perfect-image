@@ -1,5 +1,13 @@
 import { Plugin } from 'obsidian';
-import { PixelPerfectImageSettings, DEFAULT_SETTINGS, PixelPerfectImageSettingTab, sanitizeResizeSizes } from './ui/settings';
+import {
+    PixelPerfectImageSettings,
+    DEFAULT_SETTINGS,
+    PixelPerfectImageSettingTab,
+    reconcileFileOperations,
+    sanitizeResizeSizes,
+    type FileOperationConfig,
+    type FileOperationId
+} from './ui/settings';
 
 // Import service classes
 import { EventService } from './events/EventService';
@@ -10,6 +18,31 @@ import { FileService } from './core/FileService';
 
 // Import types
 import './utils/types';
+
+const LEGACY_FILE_OPERATION_SETTINGS = [
+    { id: 'openInNewTab', key: 'showOpenInNewTab' },
+    { id: 'openToTheRight', key: 'showOpenToTheRight' },
+    { id: 'openInNewWindow', key: 'showOpenInNewWindow' },
+    { id: 'openInDefaultApp', key: 'showOpenInDefaultApp' },
+    { id: 'showInExplorer', key: 'showShowInFileExplorer' },
+    { id: 'renameImage', key: 'showRenameOption' },
+    { id: 'deleteImage', key: 'showDeleteImageOption' }
+] as const satisfies readonly { id: FileOperationId; key: string }[];
+
+const LEGACY_FILE_OPERATION_KEYS = ['toggleIndividualMenuOptions', ...LEGACY_FILE_OPERATION_SETTINGS.map(setting => setting.key)] as const;
+
+export function migrateLegacyFileOperations(stored: Record<string, unknown>): FileOperationConfig[] | null {
+    if (Array.isArray(stored.fileOperations) || !LEGACY_FILE_OPERATION_KEYS.some(key => key in stored)) return null;
+
+    const defaultVisibility = new Map(DEFAULT_SETTINGS.fileOperations.map(operation => [operation.id, operation.visible] as const));
+    return LEGACY_FILE_OPERATION_SETTINGS.map(({ id, key }) => {
+        const storedVisibility = stored[key];
+        return {
+            id,
+            visible: typeof storedVisibility === 'boolean' ? storedVisibility : (defaultVisibility.get(id) ?? true)
+        };
+    });
+}
 
 export default class PixelPerfectImage extends Plugin {
     settings!: PixelPerfectImageSettings;
@@ -78,7 +111,11 @@ export default class PixelPerfectImage extends Plugin {
             migratedLegacySettings = true;
         }
 
+        const migratedFileOperations = rawStoredSettings ? migrateLegacyFileOperations(rawStoredSettings) : null;
+        if (migratedFileOperations) this.settings.fileOperations = migratedFileOperations;
+
         for (const key of [
+            ...LEGACY_FILE_OPERATION_KEYS,
             'externalEditorName',
             'externalEditorPathMac',
             'externalEditorPathWin',
@@ -90,6 +127,8 @@ export default class PixelPerfectImage extends Plugin {
                 migratedLegacySettings = true;
             }
         }
+
+        this.settings.fileOperations = reconcileFileOperations(this.settings.fileOperations);
 
         const rawResizeSizes = (this.settings as unknown as { customResizeSizes?: unknown }).customResizeSizes;
         const resizeSizes = Array.isArray(rawResizeSizes)
