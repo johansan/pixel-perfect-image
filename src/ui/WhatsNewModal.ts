@@ -1,6 +1,16 @@
-import { App, Modal } from 'obsidian';
+import { App, getLanguage, Modal, Platform } from 'obsidian';
 import { strings } from '../i18n';
 import { ReleaseNote } from '../releaseNotes';
+
+const SUPPORTED_RELEASE_NOTE_LINK_PROTOCOLS = new Set(['http:', 'https:', 'obsidian:']);
+
+function isSupportedReleaseNoteLink(url: string): boolean {
+    try {
+        return SUPPORTED_RELEASE_NOTE_LINK_PROTOCOLS.has(new URL(url).protocol);
+    } catch {
+        return false;
+    }
+}
 
 type AsyncEventHandler<TEvent extends Event = Event> = (event: TEvent) => void | Promise<void>;
 
@@ -23,12 +33,43 @@ function addAsyncEventListener<TEvent extends Event = Event>(
     return () => target.removeEventListener(type, wrappedHandler, options);
 }
 
-function formatReleaseDate(timestamp: number): string {
-    const date = new Date(timestamp);
-    if (Number.isNaN(date.getTime())) {
-        return '';
+function parseLocalDayKey(dayKey: string): Date | null {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dayKey);
+    if (!match) {
+        return null;
     }
-    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const date = new Date(year, month - 1, day, 12, 0, 0, 0);
+
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+        return null;
+    }
+
+    return date;
+}
+
+function formatLocalizedMonthDay(date: Date, locale: string): string {
+    return new Intl.DateTimeFormat(locale || undefined, {
+        month: 'long',
+        day: 'numeric'
+    }).format(date);
+}
+
+function formatReleaseDay(dayKey: string): string {
+    const date = parseLocalDayKey(dayKey);
+    if (!date) {
+        return dayKey;
+    }
+
+    try {
+        const locale = (getLanguage() || 'en').replace(/_/g, '-');
+        return formatLocalizedMonthDay(date, locale);
+    } catch {
+        return dayKey;
+    }
 }
 
 export class WhatsNewModal extends Modal {
@@ -37,16 +78,21 @@ export class WhatsNewModal extends Modal {
     private onCloseCallback?: () => void;
     private domDisposers: (() => void)[] = [];
 
+    private normalizeTextBreaks(text: string): string {
+        return text.replace(/\r\n?/g, '\n').replace(/<br\s*\/?>/gi, '\n');
+    }
+
     // Renders limited formatting into a container element.
     // Supports:
     // - **bold**
-    // - ==text== (highlight as red + bold)
-    // - [label](https://link)
+    // - `inline code`
+    // - ==text== (highlight)
+    // - [label](https://link) and [label](obsidian://action)
     // - Auto-link bare http(s) URLs
-    // - Line breaks: single \n becomes <br>
+    // - Line breaks: single \n or <br> becomes <br>
     private renderFormattedText(container: HTMLElement, text: string): void {
         const renderInline = (segment: string, dest: HTMLElement) => {
-            const pattern = /==([\s\S]*?)==|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\*\*([^*]+)\*\*|(https?:\/\/[^\s]+)/g;
+            const pattern = /==([\s\S]*?)==|\[([^\]]+)\]\(([^\s)]+)\)|`([^`]+)`|\*\*([^*]+)\*\*|(https?:\/\/[^\s]+)/g;
             let lastIndex = 0;
             let match: RegExpExecArray | null;
 
@@ -60,15 +106,17 @@ export class WhatsNewModal extends Modal {
                 if (match[1]) {
                     const highlight = dest.createSpan({ cls: 'pixel-perfect-whats-new-highlight' });
                     renderInline(match[1], highlight);
-                } else if (match[2] && match[3]) {
+                } else if (match[2] && match[3] && isSupportedReleaseNoteLink(match[3])) {
                     const a = dest.createEl('a', { text: match[2] });
                     a.setAttr('href', match[3]);
                     a.setAttr('rel', 'noopener noreferrer');
                     a.setAttr('target', '_blank');
                 } else if (match[4]) {
-                    dest.createEl('strong', { text: match[4] });
+                    dest.createEl('code', { text: match[4] });
                 } else if (match[5]) {
-                    let url = match[5];
+                    dest.createEl('strong', { text: match[5] });
+                } else if (match[6]) {
+                    let url = match[6];
                     let trailing = '';
                     const trailingMatch = url.match(/[.,;:!?)]+$/);
                     if (trailingMatch) {
@@ -82,6 +130,8 @@ export class WhatsNewModal extends Modal {
                     if (trailing) {
                         appendText(trailing);
                     }
+                } else if (match[2] && match[3]) {
+                    appendText(match[0]);
                 }
 
                 lastIndex = pattern.lastIndex;
@@ -90,13 +140,30 @@ export class WhatsNewModal extends Modal {
             appendText(segment.slice(lastIndex));
         };
 
-        const lines = text.split('\n');
+        const lines = this.normalizeTextBreaks(text).split('\n');
         for (let i = 0; i < lines.length; i++) {
             renderInline(lines[i], container);
             if (i < lines.length - 1) {
                 container.createEl('br');
             }
         }
+    }
+
+    private renderInfoText(container: HTMLElement, text: string): void {
+        const normalizedText = this.normalizeTextBreaks(text).trim();
+        if (normalizedText.length === 0) {
+            return;
+        }
+
+        const paragraphs = normalizedText
+            .split(/\n[ \t]*\n+/)
+            .map(paragraph => paragraph.trim())
+            .filter(paragraph => paragraph.length > 0);
+
+        paragraphs.forEach(paragraph => {
+            const p = container.createEl('p', { cls: 'pixel-perfect-whats-new-info' });
+            this.renderFormattedText(p, paragraph);
+        });
     }
 
     constructor(app: App, releaseNotes: ReleaseNote[], onCloseCallback?: () => void) {
@@ -110,11 +177,7 @@ export class WhatsNewModal extends Modal {
 
         contentEl.empty();
         this.modalEl.addClass('pixel-perfect-whats-new-modal');
-
-        contentEl.createEl('h2', {
-            text: strings.whatsNew.title,
-            cls: 'pixel-perfect-whats-new-header'
-        });
+        this.titleEl.setText(strings.whatsNew.title);
 
         this.attachCloseButtonHandler();
 
@@ -124,20 +187,11 @@ export class WhatsNewModal extends Modal {
             const versionContainer = scrollContainer.createDiv('pixel-perfect-whats-new-version');
 
             versionContainer.createEl('h3', {
-                text: `Version ${note.version}`
-            });
-
-            versionContainer.createEl('small', {
-                text: formatReleaseDate(new Date(note.date).getTime()) || note.date,
-                cls: 'pixel-perfect-whats-new-date'
+                text: `Version ${note.version} (${formatReleaseDay(note.date)})`
             });
 
             if (note.info) {
-                const paragraphs = note.info.split(/\n\s*\n/);
-                paragraphs.forEach(paragraph => {
-                    const p = versionContainer.createEl('p', { cls: 'pixel-perfect-whats-new-info' });
-                    this.renderFormattedText(p, paragraph);
-                });
+                this.renderInfoText(versionContainer, note.info);
             }
 
             const categories = [
@@ -211,9 +265,9 @@ export class WhatsNewModal extends Modal {
 
     open(): void {
         super.open();
-        if (this.thanksButton) {
+        if (this.thanksButton && !Platform.isMobile) {
             window.requestAnimationFrame(() => {
-                this.thanksButton?.focus();
+                this.thanksButton?.focus({ preventScroll: true });
             });
         }
     }

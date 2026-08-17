@@ -10,10 +10,11 @@
  *
  * Supported inline formatting in `info` and list items:
  * - Bold: **text**
+ * - Inline code: `code`
  * - Critical emphasis: ==text==
- * - Markdown links: [label](https://example.com)
+ * - Markdown links: [label](https://example.com) or [label](obsidian://action)
  * - Bare URLs: https://example.com
- * - Line breaks: single `\n` becomes a line break
+ * - Line breaks: single `\n` or `<br>` becomes a line break
  */
 
 export interface ReleaseNote {
@@ -37,7 +38,7 @@ const RELEASE_NOTES: ReleaseNote[] = [
         showOnUpdate: true,
         new: ['Context menu file operations can now be reordered in settings, with visibility controlled per item.'],
         improved: [],
-        changed: ['Removed the unused debug mode setting.', 'The minimum supported Obsidian version is now 1.13.1.'],
+        changed: ['Removed the unused debug mode setting.', 'The minimum supported Obsidian version is now 1.13.'],
         fixed: ['Image links inside code blocks and inline code are no longer modified when resizing or removing images.']
     },
     {

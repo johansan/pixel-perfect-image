@@ -42,10 +42,15 @@
 .modal.pixel-perfect-whats-new-modal {
     width: 600px;
     max-width: calc(100vw - 40px);
+    overflow: hidden;
 }
 
 /* What's new content layout */
 .modal.pixel-perfect-whats-new-modal .modal-content {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
     padding: 16px;
 }
 
@@ -54,14 +59,11 @@
     pointer-events: auto;
 }
 
-/* What's new header */
-.pixel-perfect-whats-new-header {
-    margin-bottom: 16px;
-}
-
 /* What's new scrollable container */
 .pixel-perfect-whats-new-scroll {
-    max-height: 400px;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: min(70vh, 520px);
     overflow-y: auto;
     margin-bottom: 0;
     padding-right: 8px;
@@ -71,22 +73,23 @@
 /* Version container */
 .pixel-perfect-whats-new-version {
     margin-bottom: 16px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--background-modifier-border);
 }
 
-/* Version container - last child no border */
+/* Version container - last child no margin */
 .pixel-perfect-whats-new-version:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
+    margin-bottom: 0;
 }
 
 /* Version header */
 .pixel-perfect-whats-new-version h3 {
+    display: block;
     font-size: 14px;
     font-weight: 600;
     color: var(--text-normal);
+    background: var(--background-secondary);
     margin: 0 0 4px;
+    padding: 6px 10px;
+    border-radius: 6px;
 }
 
 /* Feature list */
@@ -116,14 +119,6 @@
     margin-bottom: 16px;
 }
 
-/* Version date */
-.pixel-perfect-whats-new-date {
-    color: var(--text-muted);
-    font-size: 12px;
-    display: block;
-    margin-bottom: 8px;
-}
-
 /* Feature list */
 .pixel-perfect-whats-new-version ul {
     list-style: disc;
@@ -146,6 +141,15 @@
     padding: 0 2px;
     border-radius: 3px;
     font-weight: 600;
+}
+
+.pixel-perfect-whats-new-info code,
+.pixel-perfect-whats-new-version li code {
+    color: var(--code-normal);
+    background-color: var(--code-background);
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    font-size: 0.9em;
 }
 
 /* Support container */
@@ -196,10 +200,11 @@
     }
 
     .pixel-perfect-whats-new-scroll {
-        max-height: 300px;
+        max-height: min(60vh, 360px);
         padding-right: 4px;
     }
 
+    /* Use standard text sizing for readability on mobile */
     .pixel-perfect-whats-new-info,
     .pixel-perfect-whats-new-version li,
     .pixel-perfect-whats-new-category {
@@ -207,24 +212,13 @@
         line-height: 1.6;
     }
 
-    .pixel-perfect-whats-new-header {
-        font-size: 16px;
-    }
-
+    /* Version header size on mobile */
     .pixel-perfect-whats-new-version h3 {
         font-size: 15px;
-    }
-
-    .pixel-perfect-whats-new-date {
-        font-size: 14px;
     }
 }
 
 /* Obsidian mobile app adjustments */
-.is-mobile .pixel-perfect-whats-new-header {
-    font-size: 16px;
-}
-
 .is-mobile .pixel-perfect-whats-new-info,
 .is-mobile .pixel-perfect-whats-new-version li,
 .is-mobile .pixel-perfect-whats-new-category {
@@ -234,8 +228,4 @@
 
 .is-mobile .pixel-perfect-whats-new-version h3 {
     font-size: 15px;
-}
-
-.is-mobile .pixel-perfect-whats-new-date {
-    font-size: 14px;
 }
