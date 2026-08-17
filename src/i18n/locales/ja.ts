@@ -67,7 +67,8 @@ export const STRINGS_JA = {
     settings: {
         headings: {
             mousewheelZoom: 'マウスホイールズーム',
-            advanced: '高度な設定'
+            advanced: '高度な設定',
+            about: 'このプラグインについて'
         },
 
         items: {
@@ -75,6 +76,15 @@ export const STRINGS_JA = {
                 name: 'Pixel Perfect Image {version} の新機能',
                 desc: '最新の変更点や改善点を確認できます。',
                 buttonText: '最近の更新を見る'
+            },
+            about: {
+                supportName: '開発を支援する',
+                supportDesc: 'Pixel Perfect Image が役に立ったら、開発の支援をご検討ください。',
+                sponsorButton: '❤️ スポンサー',
+                coffeeButton: '☕️ コーヒーをおごる',
+                pluginsName: 'ほかのプラグインも見る',
+                notebookNavigatorDesc: 'より使いやすいファイルブラウザとカレンダー',
+                betterPasteDesc: '貼り付けたテキスト、リンク、画像を整える'
             },
             contextMenu: {
                 name: 'コンテキストメニュー',

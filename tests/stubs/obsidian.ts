@@ -10,6 +10,10 @@ export function getLanguage(): string {
     return 'en';
 }
 
+export function addIcon(_iconId: string, _svgContent: string): void {}
+
+export function setIcon(_parent: unknown, _iconId: string): void {}
+
 export class Notice {
     static readonly instances: Notice[] = [];
 

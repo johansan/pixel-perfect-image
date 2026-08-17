@@ -67,7 +67,8 @@ export const STRINGS_ZH = {
     settings: {
         headings: {
             mousewheelZoom: '鼠标滚轮缩放',
-            advanced: '高级'
+            advanced: '高级',
+            about: '关于'
         },
 
         items: {
@@ -75,6 +76,15 @@ export const STRINGS_ZH = {
                 name: 'Pixel Perfect Image {version} 的新功能',
                 desc: '查看最新的更改与改进。',
                 buttonText: '查看最近更新'
+            },
+            about: {
+                supportName: '支持开发',
+                supportDesc: '如果 Pixel Perfect Image 对你有帮助，欢迎支持它的开发。',
+                sponsorButton: '❤️ 赞助',
+                coffeeButton: '☕️ 请我喝杯咖啡',
+                pluginsName: '看看我的其他插件',
+                notebookNavigatorDesc: '更好用的文件浏览器和日历',
+                betterPasteDesc: '整理粘贴的文本、链接和图片'
             },
             contextMenu: {
                 name: '上下文菜单',

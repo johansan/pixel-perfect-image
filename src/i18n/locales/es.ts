@@ -67,7 +67,8 @@ export const STRINGS_ES = {
     settings: {
         headings: {
             mousewheelZoom: 'Zoom con rueda del ratón',
-            advanced: 'Avanzado'
+            advanced: 'Avanzado',
+            about: 'Acerca de'
         },
 
         items: {
@@ -75,6 +76,15 @@ export const STRINGS_ES = {
                 name: 'Novedades de Pixel Perfect Image {version}',
                 desc: 'Consulta los últimos cambios y mejoras.',
                 buttonText: 'Ver actualizaciones recientes'
+            },
+            about: {
+                supportName: 'Apoyar el desarrollo',
+                supportDesc: 'Si Pixel Perfect Image te resulta útil, considera apoyar su desarrollo.',
+                sponsorButton: '❤️ Patrocinar',
+                coffeeButton: '☕️ Invítame a un café',
+                pluginsName: 'Descubre mis otros plugins',
+                notebookNavigatorDesc: 'Un explorador de archivos y calendario mejores',
+                betterPasteDesc: 'Limpia el texto, los enlaces y las imágenes que pegas'
             },
             contextMenu: {
                 name: 'Menú contextual',

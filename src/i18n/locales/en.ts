@@ -67,7 +67,8 @@ export const STRINGS_EN = {
     settings: {
         headings: {
             mousewheelZoom: 'Mousewheel zoom',
-            advanced: 'Advanced'
+            advanced: 'Advanced',
+            about: 'About'
         },
 
         items: {
@@ -75,6 +76,15 @@ export const STRINGS_EN = {
                 name: "What's new in Pixel Perfect Image {version}",
                 desc: 'See the latest changes and improvements.',
                 buttonText: 'View recent updates'
+            },
+            about: {
+                supportName: 'Support development',
+                supportDesc: 'If you find Pixel Perfect Image useful, please consider supporting its development.',
+                sponsorButton: '❤️ Sponsor',
+                coffeeButton: '☕️ Buy me a coffee',
+                pluginsName: 'Check out my other plugins',
+                notebookNavigatorDesc: 'A better file browser and calendar',
+                betterPasteDesc: 'Clean up pasted text, links and images'
             },
             contextMenu: {
                 name: 'Context menu',

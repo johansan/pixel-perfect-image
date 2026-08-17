@@ -1,7 +1,47 @@
-import { Platform, PluginSettingTab } from 'obsidian';
+import { Platform, PluginSettingTab, setIcon } from 'obsidian';
 import type { App, ExtraButtonComponent, Setting, SettingDefinitionItem, SliderComponent } from 'obsidian';
 import type PixelPerfectImage from '../main';
 import { strings } from '../i18n';
+import { BETTER_PASTE_ICON, NOTEBOOK_NAVIGATOR_ICON } from './pluginIcons';
+
+const SUPPORT_SPONSOR_URL = 'https://github.com/sponsors/johansan/';
+const SUPPORT_BUY_ME_A_COFFEE_URL = 'https://buymeacoffee.com/johansan';
+
+const OTHER_PLUGINS = [
+    {
+        id: 'notebook-navigator',
+        name: 'Notebook Navigator',
+        icon: NOTEBOOK_NAVIGATOR_ICON,
+        description: strings.settings.items.about.notebookNavigatorDesc
+    },
+    {
+        id: 'better-paste',
+        name: 'Better Paste',
+        icon: BETTER_PASTE_ICON,
+        description: strings.settings.items.about.betterPasteDesc
+    }
+];
+
+function communityPluginUrl(id: string): string {
+    return `obsidian://show-plugin?id=${id}`;
+}
+
+function renderOtherPlugins(setting: Setting): void {
+    setting.settingEl.addClass('pixel-perfect-plugins');
+    const list = setting.settingEl.createDiv({ cls: 'pixel-perfect-plugin-list' });
+
+    for (const plugin of OTHER_PLUGINS) {
+        const card = list.createEl('button', { cls: 'pixel-perfect-plugin-card', attr: { type: 'button' } });
+        setIcon(card.createDiv({ cls: 'pixel-perfect-plugin-icon' }), plugin.icon);
+        const details = card.createDiv({ cls: 'pixel-perfect-plugin-details' });
+        details.createDiv({ cls: 'pixel-perfect-plugin-name', text: plugin.name });
+        details.createDiv({ cls: 'pixel-perfect-plugin-description', text: plugin.description });
+        setIcon(card.createDiv({ cls: 'pixel-perfect-plugin-arrow' }), 'chevron-right');
+        card.addEventListener('click', () => {
+            window.open(communityPluginUrl(plugin.id));
+        });
+    }
+}
 
 const FILE_OPERATION_IDS = [
     'openInNewTab',
@@ -226,17 +266,6 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
 
         return [
             {
-                name: strings.settings.items.whatsNew.name.replace('{version}', this.plugin.manifest.version),
-                desc: strings.settings.items.whatsNew.desc,
-                render: setting => {
-                    setting.addButton(button =>
-                        button.setButtonText(strings.settings.items.whatsNew.buttonText).onClick(() => {
-                            void this.openWhatsNewModal();
-                        })
-                    );
-                }
-            },
-            {
                 type: 'page',
                 name: strings.settings.items.contextMenu.name,
                 desc: strings.settings.items.contextMenu.desc,
@@ -317,6 +346,43 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
                 type: 'group',
                 heading: strings.settings.headings.advanced,
                 items: [createToggleDefinition(CONFIRM_DELETE_SETTING)]
+            },
+            {
+                type: 'group',
+                heading: strings.settings.headings.about,
+                items: [
+                    {
+                        name: strings.settings.items.whatsNew.name.replace('{version}', this.plugin.manifest.version),
+                        desc: strings.settings.items.whatsNew.desc,
+                        render: setting => {
+                            setting.addButton(button =>
+                                button.setButtonText(strings.settings.items.whatsNew.buttonText).onClick(() => {
+                                    void this.openWhatsNewModal();
+                                })
+                            );
+                        }
+                    },
+                    {
+                        name: strings.settings.items.about.supportName,
+                        desc: strings.settings.items.about.supportDesc,
+                        render: setting => {
+                            setting.addButton(button =>
+                                button.setButtonText(strings.settings.items.about.sponsorButton).onClick(() => {
+                                    window.open(SUPPORT_SPONSOR_URL);
+                                })
+                            );
+                            setting.addButton(button =>
+                                button.setButtonText(strings.settings.items.about.coffeeButton).onClick(() => {
+                                    window.open(SUPPORT_BUY_ME_A_COFFEE_URL);
+                                })
+                            );
+                        }
+                    },
+                    {
+                        name: strings.settings.items.about.pluginsName,
+                        render: renderOtherPlugins
+                    }
+                ]
             }
         ];
     }
