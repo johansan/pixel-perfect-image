@@ -78,6 +78,9 @@ export interface PixelPerfectImageSettings {
     // Advanced settings
     confirmBeforeDelete: boolean;
 
+    // About settings
+    showReleaseNotes: boolean;
+
     // Internal state
     lastShownVersion: string;
 }
@@ -103,6 +106,9 @@ export const DEFAULT_SETTINGS: PixelPerfectImageSettings = {
 
     // Advanced defaults
     confirmBeforeDelete: true,
+
+    // About defaults
+    showReleaseNotes: true,
 
     // Internal state
     lastShownVersion: ''
@@ -174,6 +180,12 @@ const CONFIRM_DELETE_SETTING = {
     key: 'confirmBeforeDelete',
     name: strings.settings.items.confirmDelete.name,
     desc: strings.settings.items.confirmDelete.desc
+} as const satisfies ToggleSettingSpec;
+
+const SHOW_RELEASE_NOTES_SETTING = {
+    key: 'showReleaseNotes',
+    name: strings.settings.items.showReleaseNotes.name,
+    desc: strings.settings.items.showReleaseNotes.desc
 } as const satisfies ToggleSettingSpec;
 
 const FILE_OPERATION_CONTROL_PREFIX = 'fileOp.';
@@ -362,6 +374,7 @@ export class PixelPerfectImageSettingTab extends PluginSettingTab {
                             );
                         }
                     },
+                    createToggleDefinition(SHOW_RELEASE_NOTES_SETTING),
                     {
                         name: strings.settings.items.about.supportName,
                         desc: strings.settings.items.about.supportDesc,

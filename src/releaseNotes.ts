@@ -33,6 +33,15 @@ export interface ReleaseNote {
  */
 const RELEASE_NOTES: ReleaseNote[] = [
     {
+        version: '1.0.30',
+        date: '2026-08-23',
+        showOnUpdate: true,
+        new: ["You can now turn off the What's new dialog after updates in settings."],
+        improved: [],
+        changed: [],
+        fixed: []
+    },
+    {
         version: '1.0.29',
         date: '2026-08-17',
         showOnUpdate: true,

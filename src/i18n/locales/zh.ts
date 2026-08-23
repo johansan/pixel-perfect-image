@@ -77,6 +77,10 @@ export const STRINGS_ZH = {
                 desc: '查看最新的更改与改进。',
                 buttonText: '查看最近更新'
             },
+            showReleaseNotes: {
+                name: '更新后显示新功能',
+                desc: '每次更新后打开一次新功能对话框。'
+            },
             about: {
                 supportName: '支持开发',
                 supportDesc: '如果 Pixel Perfect Image 对你有帮助，欢迎支持它的开发。',

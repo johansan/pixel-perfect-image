@@ -77,6 +77,10 @@ export const STRINGS_FR = {
                 desc: 'Consultez les derniers changements et améliorations.',
                 buttonText: 'Voir les mises à jour récentes'
             },
+            showReleaseNotes: {
+                name: 'Afficher les nouveautés après une mise à jour',
+                desc: 'Ouvre la fenêtre des nouveautés une fois après chaque mise à jour.'
+            },
             about: {
                 supportName: 'Soutenir le développement',
                 supportDesc: 'Si Pixel Perfect Image vous est utile, envisagez de soutenir son développement.',

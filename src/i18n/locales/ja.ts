@@ -77,6 +77,10 @@ export const STRINGS_JA = {
                 desc: '最新の変更点や改善点を確認できます。',
                 buttonText: '最近の更新を見る'
             },
+            showReleaseNotes: {
+                name: '更新後に新機能を表示',
+                desc: '更新のたびに新機能のダイアログを一度表示します。'
+            },
             about: {
                 supportName: '開発を支援する',
                 supportDesc: 'Pixel Perfect Image が役に立ったら、開発の支援をご検討ください。',

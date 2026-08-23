@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { migrateLegacyFileOperations } from '../src/main';
-import { reconcileFileOperations } from '../src/ui/settings';
+import { DEFAULT_SETTINGS, PixelPerfectImageSettingTab, reconcileFileOperations } from '../src/ui/settings';
 
 const DEFAULT_FILE_OPERATIONS = [
     { id: 'openInNewTab', visible: true },
@@ -11,6 +11,13 @@ const DEFAULT_FILE_OPERATIONS = [
     { id: 'renameImage', visible: true },
     { id: 'deleteImage', visible: true }
 ];
+
+interface SettingDefinitionShape {
+    type?: string;
+    heading?: string;
+    name?: string;
+    items?: SettingDefinitionShape[];
+}
 
 describe('reconcileFileOperations', () => {
     it('preserves a valid configured order and visibility', () => {
@@ -128,5 +135,29 @@ describe('migrateLegacyFileOperations', () => {
 
     it('returns null when no legacy keys are stored', () => {
         expect(migrateLegacyFileOperations({ showFileInfo: true })).toBeNull();
+    });
+});
+
+describe('release notes setting', () => {
+    it('is enabled by default', () => {
+        expect(DEFAULT_SETTINGS.showReleaseNotes).toBe(true);
+    });
+
+    it("appears immediately below What's new in settings", () => {
+        const tab = Object.create(PixelPerfectImageSettingTab.prototype) as PixelPerfectImageSettingTab;
+        Object.defineProperty(tab, 'plugin', {
+            value: {
+                manifest: { version: '1.0.30' },
+                settings: DEFAULT_SETTINGS
+            }
+        });
+
+        const definitions = tab.getSettingDefinitions() as unknown as SettingDefinitionShape[];
+        const aboutGroup = definitions.find(item => item.type === 'group' && item.heading === 'About');
+
+        expect(aboutGroup?.items?.slice(0, 2).map(item => item.name) ?? []).toEqual([
+            "What's new in Pixel Perfect Image 1.0.30",
+            'Show release notes after updating'
+        ]);
     });
 });

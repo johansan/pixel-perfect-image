@@ -210,7 +210,13 @@ export default class PixelPerfectImage extends Plugin {
         const { getReleaseNotesBetweenVersions, getLatestReleaseNotes, compareVersions, isReleaseAutoDisplayEnabled } =
             await import('./releaseNotes');
 
-        if (!isReleaseAutoDisplayEnabled(currentVersion)) {
+        if (!this.settings.showReleaseNotes || !isReleaseAutoDisplayEnabled(currentVersion)) {
+            // Keep the high-water marker current while startup dialogs are disabled, otherwise
+            // re-enabling them would replay release notes from updates skipped meanwhile.
+            if (!lastShownVersion || compareVersions(currentVersion, lastShownVersion) > 0) {
+                this.settings.lastShownVersion = currentVersion;
+                await this.saveSettings();
+            }
             return;
         }
 

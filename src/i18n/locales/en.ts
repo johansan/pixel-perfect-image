@@ -77,6 +77,10 @@ export const STRINGS_EN = {
                 desc: 'See the latest changes and improvements.',
                 buttonText: 'View recent updates'
             },
+            showReleaseNotes: {
+                name: 'Show release notes after updating',
+                desc: "Opens the What's new dialog once after each update."
+            },
             about: {
                 supportName: 'Support development',
                 supportDesc: 'If you find Pixel Perfect Image useful, please consider supporting its development.',
